@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "symbioticlaw:block/power_core_top",
+    "up": "symbioticlaw:block/power_core_top",
+    "north": "symbioticlaw:block/power_core_front",
+    "south": "symbioticlaw:block/power_core_side",
+    "east": "symbioticlaw:block/power_core_side",
+    "west": "symbioticlaw:block/power_core_side",
+    "particle": "symbioticlaw:block/power_core_front"
+  }
+}

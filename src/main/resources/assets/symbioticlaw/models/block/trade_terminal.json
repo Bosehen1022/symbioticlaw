@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "symbioticlaw:block/trade_terminal_top",
+    "up": "symbioticlaw:block/trade_terminal_top",
+    "north": "symbioticlaw:block/trade_terminal_front",
+    "south": "symbioticlaw:block/trade_terminal_side",
+    "east": "symbioticlaw:block/trade_terminal_side",
+    "west": "symbioticlaw:block/trade_terminal_side",
+    "particle": "symbioticlaw:block/trade_terminal_front"
+  }
+}

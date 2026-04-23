@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "symbioticlaw:block/trade_terminal" },
+    "facing=east": { "model": "symbioticlaw:block/trade_terminal", "y": 90 },
+    "facing=south": { "model": "symbioticlaw:block/trade_terminal", "y": 180 },
+    "facing=west": { "model": "symbioticlaw:block/trade_terminal", "y": 270 }
+  }
+}

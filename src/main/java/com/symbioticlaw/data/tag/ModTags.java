@@ -28,7 +28,7 @@ public class ModTags {
         public static final TagKey<Item> BLACKSMITH_SELLABLES = tag("blacksmith_sellables");
 
         private static TagKey<Item> tag(String name) {
-            return TagKey.create(Registries.ITEM, ResourceLocation.parse(Symbioticlaw.MODID + ":" + name));
+            return TagKey.create(Registries.ITEM, new ResourceLocation(Symbioticlaw.MODID, name));
         }
     }
 }

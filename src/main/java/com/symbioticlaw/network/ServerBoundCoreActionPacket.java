@@ -3,6 +3,7 @@ package com.symbioticlaw.network;
 import com.symbioticlaw.capability.PlayerDataCapability;
 import com.symbioticlaw.data.UnclaimedIncomeData;
 import com.symbioticlaw.data.WorldData;
+import com.symbioticlaw.event.CoreAmbienceHandler;
 import com.symbioticlaw.system.AffinitySystem;
 import com.symbioticlaw.system.ClassSystem;
 import net.minecraft.core.BlockPos;
@@ -52,6 +53,17 @@ public class ServerBoundCoreActionPacket {
 
             // This should be a singleton or obtained from a central place, but for now a new instance is fine as it's stateless
             ClassSystem classSystem = new ClassSystem();
+            WorldData worldData = WorldData.get(player.serverLevel());
+            if (worldData == null) return;
+            BlockPos corePos = worldData.getCorePosition();
+            if (corePos.equals(BlockPos.ZERO) || !CoreAmbienceHandler.isNearCore(player, corePos)) {
+                if (action == ActionType.CLAIM_INCOME) {
+                    player.sendSystemMessage(Component.literal("§c你必须在权力核心附近才能领取收入。"));
+                } else {
+                    player.sendSystemMessage(Component.literal("§c你必须靠近权力核心才能进行此项操作。"));
+                }
+                return;
+            }
 
             switch (action) {
                 case REQUEST_SURVIVAL_PASS: {
@@ -80,14 +92,6 @@ public class ServerBoundCoreActionPacket {
                     break;
                 }
                 case CLAIM_INCOME: {
-                    WorldData worldData = WorldData.get(player.serverLevel());
-                    BlockPos corePos = worldData.getCorePosition();
-
-                    if (corePos.equals(BlockPos.ZERO) || player.distanceToSqr(corePos.getX(), corePos.getY(), corePos.getZ()) > 100) { // 10 block radius
-                        player.sendSystemMessage(Component.literal("§c你必须在权力核心附近才能领取收入。"));
-                        return;
-                    }
-
                     UnclaimedIncomeData incomeData = worldData.getUnclaimedIncomeData();
                     double amountToClaim = incomeData.claimIncome(player.getUUID());
 

@@ -29,11 +29,11 @@ public class ModTags {
 
 
         private static TagKey<Item> tag(String name) {
-            return TagKey.create(Registries.ITEM, ResourceLocation.parse(Symbioticlaw.MODID + ":" + name));
+            return TagKey.create(Registries.ITEM, new ResourceLocation(Symbioticlaw.MODID, name));
         }
 
         private static TagKey<Item> forgeTag(String name) {
-            return TagKey.create(Registries.ITEM, ResourceLocation.parse("forge:" + name));
+            return TagKey.create(Registries.ITEM, new ResourceLocation("forge", name));
         }
     }
 
@@ -41,11 +41,11 @@ public class ModTags {
         public static final TagKey<Block> NEEDS_NETHERITE_TOOL = tag("needs_netherite_tool");
 
         private static TagKey<Block> tag(String name) {
-            return TagKey.create(Registries.BLOCK, ResourceLocation.parse(Symbioticlaw.MODID + ":" + name));
+            return TagKey.create(Registries.BLOCK, new ResourceLocation(Symbioticlaw.MODID, name));
         }
 
         private static TagKey<Block> forgeTag(String name) {
-            return TagKey.create(Registries.BLOCK, ResourceLocation.parse("forge:" + name));
+            return TagKey.create(Registries.BLOCK, new ResourceLocation("forge", name));
         }
     }
 }

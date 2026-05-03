@@ -4,6 +4,8 @@ import com.symbioticlaw.data.MarketInfo;
 import com.symbioticlaw.data.MarketItem;
 import com.symbioticlaw.gui.menu.TradeTerminalMenu;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.List;
@@ -49,11 +51,13 @@ public class ClientBoundUpdateMarketPacket {
 
     public static void handle(ClientBoundUpdateMarketPacket packet, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-            if (mc.player != null && mc.player.containerMenu instanceof TradeTerminalMenu menu) {
-                menu.marketItemsWithPrices.clear();
-                menu.marketItemsWithPrices.addAll(packet.marketData);
-            }
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                if (mc.player != null && mc.player.containerMenu instanceof TradeTerminalMenu menu) {
+                    menu.marketItemsWithPrices.clear();
+                    menu.marketItemsWithPrices.addAll(packet.marketData);
+                }
+            });
         });
         ctx.get().setPacketHandled(true);
     }

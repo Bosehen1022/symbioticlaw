@@ -34,8 +34,12 @@ public class ServerBoundAcceptContractPacket {
             ServerPlayer player = context.getSender();
             if (player != null) {
                 ContractData contractData = ContractData.get(player.serverLevel());
+                if (contractData == null) return;
                 Contract contract = contractData.getContract(this.contractId);
                 if (contract != null) {
+                    if (contract.isExpired()) return;
+                    if (contract.status != com.symbioticlaw.contract.ContractStatus.OPEN) return;
+                    if (contract.issuerId.equals(player.getUUID())) return;
                     contract.accept(player.getUUID(), player.getGameProfile().getName());
                     contractData.setDirty();
                 }

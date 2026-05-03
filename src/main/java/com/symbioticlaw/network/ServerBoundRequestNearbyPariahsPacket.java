@@ -24,22 +24,28 @@ public class ServerBoundRequestNearbyPariahsPacket {
             ServerPlayer player = ctx.get().getSender();
             if (player == null) return;
 
-            List<ClientBoundPariahListPacket.PariahInfo> pariahs = new ArrayList<>();
-            for (ServerPlayer p : player.server.getPlayerList().getPlayers()) {
-                if (p != player && p.distanceToSqr(player) <= 100) { // 10 blocks, excluding self
-                    p.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
-                        if (playerData.getClassTier() == 0) { // Pariah
-                            pariahs.add(new ClientBoundPariahListPacket.PariahInfo(
-                                p.getUUID(), 
-                                p.getGameProfile().getName(), 
-                                playerData.getBalance(), 
-                                playerData.isWelfareRecipient()
-                            ));
-                        }
-                    });
+            player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(requesterData -> {
+                if (requesterData.getClassTier() < 2 && !requesterData.hasSlaves()) {
+                    return;
                 }
-            }
-            NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new ClientBoundPariahListPacket(pariahs));
+
+                List<ClientBoundPariahListPacket.PariahInfo> pariahs = new ArrayList<>();
+                for (ServerPlayer p : player.server.getPlayerList().getPlayers()) {
+                    if (p != player && p.distanceToSqr(player) <= 100) {
+                        p.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
+                            if (playerData.getClassTier() == 0) {
+                                pariahs.add(new ClientBoundPariahListPacket.PariahInfo(
+                                    p.getUUID(),
+                                    p.getGameProfile().getName(),
+                                    playerData.getBalance(),
+                                    playerData.isWelfareRecipient()
+                                ));
+                            }
+                        });
+                    }
+                }
+                NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new ClientBoundPariahListPacket(pariahs));
+            });
         });
         ctx.get().setPacketHandled(true);
     }

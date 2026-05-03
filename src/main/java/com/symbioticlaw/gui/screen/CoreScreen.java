@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.UUID;
 
 public class CoreScreen extends AbstractContainerScreen<PowerCoreMenu> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.parse("symbioticlaw:textures/gui/power_core_gui.png");
-    private static final ResourceLocation PARIAH_STAMP = ResourceLocation.parse("symbioticlaw:textures/gui/pariah_stamp.png");
-    private static final ResourceLocation RESTRICTED_STAMP = ResourceLocation.parse("symbioticlaw:textures/gui/restricted_stamp.png");
-    private static final ResourceLocation FREE_STAMP = ResourceLocation.parse("symbioticlaw:textures/gui/free_stamp.png");
+    private static final ResourceLocation TEXTURE = new ResourceLocation(Symbioticlaw.MODID, "textures/gui/power_core_gui.png");
+    private static final ResourceLocation PARIAH_STAMP = new ResourceLocation(Symbioticlaw.MODID, "textures/gui/pariah_stamp.png");
+    private static final ResourceLocation RESTRICTED_STAMP = new ResourceLocation(Symbioticlaw.MODID, "textures/gui/restricted_stamp.png");
+    private static final ResourceLocation FREE_STAMP = new ResourceLocation(Symbioticlaw.MODID, "textures/gui/free_stamp.png");
 
     private Tab currentTab = Tab.PROFILE;
 

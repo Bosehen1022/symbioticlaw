@@ -37,7 +37,7 @@ public class ContractCommand {
         );
 
         dispatcher.register(Commands.literal("sy")
-                .requires(s -> s.hasPermission(2))
+                .requires(s -> s.hasPermission(0))
                 .then(Commands.literal("contract")
                         .then(Commands.literal("initiate")
                                 .then(Commands.argument("slave", EntityArgument.player())

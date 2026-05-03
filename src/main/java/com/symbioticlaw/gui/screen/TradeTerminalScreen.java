@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 public class TradeTerminalScreen extends AbstractContainerScreen<TradeTerminalMenu> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.parse("symbioticlaw:textures/gui/trade_terminal_gui.png");
+    private static final ResourceLocation TEXTURE = new ResourceLocation(Symbioticlaw.MODID, "textures/gui/trade_terminal_gui.png");
 
     private int currentTab = 0;
     private int selectedMarketItem = -1;
@@ -136,7 +136,8 @@ public class TradeTerminalScreen extends AbstractContainerScreen<TradeTerminalMe
     }
 
     private void addMarketItemEntry(String itemId, MarketItemInfo info) {
-        var item = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(itemId));
+        ResourceLocation itemRl = ResourceLocation.tryParse(itemId);
+        var item = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
         if (item != null && !item.equals(Items.AIR)) {
             ItemStack stack = new ItemStack(item);
             marketItems.add(new MarketItemEntry(
@@ -234,7 +235,8 @@ public class TradeTerminalScreen extends AbstractContainerScreen<TradeTerminalMe
             String itemId = entry.getKey();
             double price = entry.getValue();
 
-            var item = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(itemId));
+            ResourceLocation itemRl = ResourceLocation.tryParse(itemId);
+            var item = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
             if (item != null && !item.equals(Items.AIR)) {
                 ItemStack stack = new ItemStack(item);
                 wholesaleItems.add(new WholesaleItemEntry(

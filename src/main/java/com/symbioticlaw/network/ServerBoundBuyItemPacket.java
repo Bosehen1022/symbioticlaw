@@ -43,7 +43,12 @@ public class ServerBoundBuyItemPacket {
 
             if (!(player.containerMenu instanceof TradeTerminalMenu menu)) return;
 
-            MarketData marketData = WorldData.get(player.serverLevel()).getMarketData();
+            if (packet.amount <= 0 || packet.amount > 64) return;
+            if (packet.itemId == null || packet.itemId.length() > 128) return;
+
+            WorldData worldData = WorldData.get(player.serverLevel());
+            if (worldData == null) return;
+            MarketData marketData = worldData.getMarketData();
             MarketItem marketItem = marketData.getMarketItem(packet.itemId);
             if (marketItem == null) return;
 
@@ -55,7 +60,8 @@ public class ServerBoundBuyItemPacket {
                     if (marketItem.currentStock >= packet.amount) {
                         playerData.setBalance(playerData.getBalance() - cost);
                         marketItem.currentStock -= packet.amount;
-                        Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(packet.itemId));
+                        ResourceLocation itemRl = ResourceLocation.tryParse(packet.itemId);
+                        Item item = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
                         if (item != null) {
                             player.getInventory().add(new ItemStack(item, packet.amount));
                             // Sync player data back to the client

@@ -73,7 +73,12 @@ public class Contract {
         this.issuerId = nbt.getUUID("issuerId");
         this.issuerName = nbt.getString("issuerName");
         this.type = ContractType.valueOf(nbt.getString("type"));
-        this.objectiveItem = nbt.contains("objectiveItem") ? ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(nbt.getString("objectiveItem"))) : null;
+        if (nbt.contains("objectiveItem")) {
+            ResourceLocation itemRl = ResourceLocation.tryParse(nbt.getString("objectiveItem"));
+            this.objectiveItem = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
+        } else {
+            this.objectiveItem = null;
+        }
         this.objectiveAmount = nbt.getInt("objectiveAmount");
         this.reward = nbt.getDouble("reward");
         this.expiryTime = nbt.getLong("expiryTime");

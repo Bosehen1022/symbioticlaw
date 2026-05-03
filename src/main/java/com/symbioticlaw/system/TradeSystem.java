@@ -117,7 +117,8 @@ public class TradeSystem {
 
     // This needs to be expanded for all professions
     private Profession getItemProfession(String itemId) {
-        ItemStack itemStack = new ItemStack(ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(itemId)));
+        ResourceLocation itemRl = ResourceLocation.tryParse(itemId);
+        ItemStack itemStack = itemRl != null ? new ItemStack(ForgeRegistries.ITEMS.getValue(itemRl)) : ItemStack.EMPTY;
         if (FarmerProfessionManager.isFarmerItem(itemStack)) {
             return Profession.FARMER;
         }
@@ -158,7 +159,8 @@ public class TradeSystem {
     }
 
     public void buyItems(ServerPlayer player, String itemId, int amount) {
-        Item itemToBuy = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(itemId));
+        ResourceLocation itemRl = ResourceLocation.tryParse(itemId);
+        Item itemToBuy = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
         if (itemToBuy == null) {
             player.sendSystemMessage(Component.literal("§c物品不存在。"));
             return;

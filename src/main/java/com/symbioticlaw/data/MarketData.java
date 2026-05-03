@@ -203,7 +203,11 @@ public class MarketData extends SavedData {
         // Step 3: Execute the transaction now that it's validated
         playerData.addBalance(-totalCost);
         marketItem.currentStock -= availableQuantity; // Update real stock
-        player.getInventory().add(new net.minecraft.world.item.ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(net.minecraft.resources.ResourceLocation.parse(itemId)), availableQuantity));
+        net.minecraft.resources.ResourceLocation itemRl = net.minecraft.resources.ResourceLocation.tryParse(itemId);
+        if (itemRl == null) return false;
+        var item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemRl);
+        if (item == net.minecraft.world.item.Items.AIR) return false;
+        player.getInventory().add(new net.minecraft.world.item.ItemStack(item, availableQuantity));
 
         setDirty();
         return true;
@@ -215,7 +219,10 @@ public class MarketData extends SavedData {
             return false; // Item not traded in the market
         }
 
-        var itemToSell = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(net.minecraft.resources.ResourceLocation.parse(itemId));
+        net.minecraft.resources.ResourceLocation itemRl = net.minecraft.resources.ResourceLocation.tryParse(itemId);
+        if (itemRl == null) return false;
+        var itemToSell = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemRl);
+        if (itemToSell == net.minecraft.world.item.Items.AIR) return false;
         if (player.getInventory().countItem(itemToSell) < quantity) {
             return false; // Not enough items in inventory
         }

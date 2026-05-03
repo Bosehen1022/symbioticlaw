@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 public class BondCreationScreen extends Screen {
-    private static final ResourceLocation TEXTURE = ResourceLocation.parse("symbioticlaw:textures/gui/bond_creation_gui.png");
+    private static final ResourceLocation TEXTURE = new ResourceLocation("symbioticlaw", "textures/gui/bond_creation_gui.png");
 
     private final Screen parentScreen;
     private EditBox partnerNameBox;

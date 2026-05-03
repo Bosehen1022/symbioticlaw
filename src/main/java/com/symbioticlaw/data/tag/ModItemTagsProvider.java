@@ -37,10 +37,10 @@ public class ModItemTagsProvider extends ItemTagsProvider {
 
         tag(ModTags.Items.MINER_METALS_T2)
                 .add(Items.RAW_IRON, Items.RAW_GOLD, Items.RAW_COPPER)
-                .addOptional(ResourceLocation.parse("forge:raw_materials/tin"))
-                .addOptional(ResourceLocation.parse("forge:raw_materials/lead"))
-                .addOptional(ResourceLocation.parse("forge:raw_materials/silver"))
-                .addOptional(ResourceLocation.parse("forge:raw_materials/nickel"));
+                .addOptional(new ResourceLocation("forge", "raw_materials/tin"))
+                .addOptional(new ResourceLocation("forge", "raw_materials/lead"))
+                .addOptional(new ResourceLocation("forge", "raw_materials/silver"))
+                .addOptional(new ResourceLocation("forge", "raw_materials/nickel"));
 
         tag(ModTags.Items.MINER_GEMS_T1)
                 .add(Items.QUARTZ);
@@ -64,11 +64,11 @@ public class ModItemTagsProvider extends ItemTagsProvider {
     private void addFarmerTags() {
         tag(ModTags.Items.FARMER_CROPS_T2)
                 .add(Items.WHEAT, Items.CARROT, Items.POTATO, Items.BEETROOT, Items.PUMPKIN, Items.MELON_SLICE, Items.CACTUS, Items.COCOA_BEANS)
-                .addTag(TagKey.create(Registries.ITEM, ResourceLocation.parse("forge:crops")))
-                .addOptional(ResourceLocation.parse("farmersdelight:cabbage"))
-                .addOptional(ResourceLocation.parse("farmersdelight:tomato"))
-                .addOptional(ResourceLocation.parse("farmersdelight:onion"))
-                .addOptional(ResourceLocation.parse("farmersdelight:rice"));
+                .addTag(TagKey.create(Registries.ITEM, new ResourceLocation("forge", "crops")))
+                .addOptional(new ResourceLocation("farmersdelight", "cabbage"))
+                .addOptional(new ResourceLocation("farmersdelight", "tomato"))
+                .addOptional(new ResourceLocation("farmersdelight", "onion"))
+                .addOptional(new ResourceLocation("farmersdelight", "rice"));
 
         tag(ModTags.Items.FARMER_FORESTRY_T3)
                 .addTag(ItemTags.LOGS)
@@ -82,14 +82,14 @@ public class ModItemTagsProvider extends ItemTagsProvider {
 
         tag(ModTags.Items.FARMER_RAW_MEATS_T5)
                 .add(Items.BEEF, Items.PORKCHOP, Items.MUTTON, Items.CHICKEN, Items.RABBIT)
-                .addTag(TagKey.create(Registries.ITEM, ResourceLocation.parse("forge:raw_fishes")));
+                .addTag(TagKey.create(Registries.ITEM, new ResourceLocation("forge", "raw_fishes")));
 
         tag(ModTags.Items.FARMER_PROCESSED_T6)
                 .add(Items.HAY_BLOCK)
-                .addTag(TagKey.create(Registries.ITEM, ResourceLocation.parse("forge:stripped_logs")))
-                .addTag(TagKey.create(Registries.ITEM, ResourceLocation.parse("forge:stripped_wood")))
-                .addOptional(ResourceLocation.parse("farmersdelight:rice_bale"))
-                .addOptional(ResourceLocation.parse("create:tree_bark"));
+                .addTag(TagKey.create(Registries.ITEM, new ResourceLocation("forge", "stripped_logs")))
+                .addTag(TagKey.create(Registries.ITEM, new ResourceLocation("forge", "stripped_wood")))
+                .addOptional(new ResourceLocation("farmersdelight", "rice_bale"))
+                .addOptional(new ResourceLocation("create", "tree_bark"));
 
         tag(ModTags.Items.FARMER_SELLABLE)
                 .addTag(ModTags.Items.FARMER_CROPS_T2)

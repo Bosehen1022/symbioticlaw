@@ -85,7 +85,11 @@ public class FarmerProfessionManager {
     }
 
     private static TagKey<Item> createTag(String tagName) {
-        return TagKey.create(Registries.ITEM, ResourceLocation.parse(tagName));
+        int idx = tagName.indexOf(':');
+        if (idx <= 0 || idx >= tagName.length() - 1) {
+            return TagKey.create(Registries.ITEM, new ResourceLocation("minecraft", "air"));
+        }
+        return TagKey.create(Registries.ITEM, new ResourceLocation(tagName.substring(0, idx), tagName.substring(idx + 1)));
     }
 
     public static FarmerItemCategory getCategoryFor(ItemStack stack) {

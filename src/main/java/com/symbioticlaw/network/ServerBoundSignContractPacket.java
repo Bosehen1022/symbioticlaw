@@ -1,6 +1,10 @@
 package com.symbioticlaw.network;
 
 import com.symbioticlaw.contract.ContractManager;
+import com.symbioticlaw.capability.PlayerDataCapability;
+import com.symbioticlaw.data.WorldData;
+import com.symbioticlaw.event.CoreAmbienceHandler;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -28,9 +32,25 @@ public class ServerBoundSignContractPacket {
             ServerPlayer player = ctx.get().getSender();
             if (player == null) return;
 
+            WorldData worldData = WorldData.get(player.serverLevel());
+            if (worldData == null) return;
+            BlockPos corePos = worldData.getCorePosition();
+            if (corePos.equals(BlockPos.ZERO) || !CoreAmbienceHandler.isNearCore(player, corePos)) {
+                return;
+            }
+
             ServerPlayer slave = player.getServer().getPlayerList().getPlayer(msg.slaveId);
             if (slave != null) {
-                ContractManager.INSTANCE.offerContract(player, slave);
+                player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(ownerData -> {
+                    if (ownerData.getClassTier() < 2) return;
+                    if (ownerData.getMasterUUID() != null) return;
+
+                    slave.getCapability(PlayerDataCapability.INSTANCE).ifPresent(slaveData -> {
+                        if (slaveData.getClassTier() != 0) return;
+                        if (slaveData.getMasterUUID() != null) return;
+                        ContractManager.INSTANCE.offerContract(player, slave);
+                    });
+                });
             }
         });
         ctx.get().setPacketHandled(true);

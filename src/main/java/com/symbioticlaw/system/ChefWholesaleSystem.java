@@ -180,7 +180,8 @@ public class ChefWholesaleSystem {
         }
         
         // 检查背包空间
-        Item item = ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.parse(itemId));
+        net.minecraft.resources.ResourceLocation itemRl = net.minecraft.resources.ResourceLocation.tryParse(itemId);
+        Item item = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
         if (item == null) {
             player.sendSystemMessage(Component.literal("§c[🚫] 物品不存在。"));
             return false;
@@ -232,7 +233,8 @@ public class ChefWholesaleSystem {
             double basePrice = price / WHOLESALE_MARKUP;
             
             // 获取物品显示名称
-            Item item = ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.parse(itemId));
+            net.minecraft.resources.ResourceLocation itemRl = net.minecraft.resources.ResourceLocation.tryParse(itemId);
+            Item item = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
             String itemName = item != null ? item.getDescription().getString() : itemId;
             
             player.sendSystemMessage(Component.literal(

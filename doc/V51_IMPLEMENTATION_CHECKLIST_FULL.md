@@ -34,7 +34,7 @@
 - [x] V51-0001 PlayerData 字段覆盖（balance/taxDebt/.../isExile/exileDebt/签证/共生/边境等）
 - [x] V51-0002 契约数据 SavedData（ContractData / WorldData）
 - [x] V51-0003 世界级数据 SavedData（WorldData）
-- [ ] V51-0004 离线处理：税收/共生衰减/签证倒计时/奴隶收益（需按规格补齐“离线仍然记录”的结算逻辑）
+- [x] V51-0004 离线处理：税收/共生衰减/签证倒计时/奴隶收益（见 doc/V51_OFFLINE_PROCESSING_IMPLEMENTATION.md）
 
 ## 1. 交互范式（第一章）
 - [x] V51-0101 核心 10 格强制接入 + 范围外提示 + 强制关闭

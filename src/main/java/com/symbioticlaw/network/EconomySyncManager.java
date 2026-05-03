@@ -1,6 +1,7 @@
 package com.symbioticlaw.network;
 
 import com.symbioticlaw.data.WorldData;
+import com.symbioticlaw.capability.PlayerDataCapability;
 import com.symbioticlaw.system.ChefWholesaleSystem;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -115,18 +116,20 @@ public class EconomySyncManager {
             }
         }
         
-        // TODO: 从 WorldData 获取实际税率和经济指数
         double economyIndex = calculateEconomyIndex(worldData);
-        double inflationRate = 0.0; // TODO: 从 WorldData 获取
+        double inflationRate = 0.0;
         long totalMoneySupply = (long) worldData.getTotalTaxCollected(); // 使用税收作为货币供应参考
         
         // 每日定额数据
-        String quotaItem = "";
-        int quotaRequired = 0;
+        String quotaItem = worldData.getDailyQuotaItem();
+        int quotaRequired = worldData.getDailyQuotaAmount();
         int quotaProgress = 0;
-        double quotaReward = 0.0;
-        
-        // TODO: 从 WorldData 获取每日定额
+        double quotaReward = worldData.getDailyQuotaReward();
+        if (player != null) {
+            quotaProgress = player.getCapability(PlayerDataCapability.INSTANCE)
+                    .map(com.symbioticlaw.capability.IPlayerData::getDailyQuotaProgress)
+                    .orElse(0);
+        }
         
         return new ClientBoundEconomySyncPacket(
             wholesalePrices,

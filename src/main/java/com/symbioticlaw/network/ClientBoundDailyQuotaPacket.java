@@ -1,7 +1,7 @@
 package com.symbioticlaw.network;
 
+import com.symbioticlaw.client.ClientEconomyCache;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -37,8 +37,9 @@ public class ClientBoundDailyQuotaPacket {
     public boolean handle(Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
-            // TODO: Re-implement this logic in the TradeTerminalScreen as a tab
+            ClientEconomyCache.updateDailyQuota(itemName, requiredAmount, progress, reward);
         });
+        context.setPacketHandled(true);
         return true;
     }
 }

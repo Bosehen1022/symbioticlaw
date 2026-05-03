@@ -7,7 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 
 public class BorderWarningOverlay {
-    private static final ResourceLocation VIGNETTE_RED = ResourceLocation.fromNamespaceAndPath("symbioticlaw", "textures/gui/vignette_red.png");
+    private static final ResourceLocation VIGNETTE_RED = new ResourceLocation("symbioticlaw", "textures/gui/vignette_red.png");
     private static boolean show = false;
     private static int countdown = 0;
 

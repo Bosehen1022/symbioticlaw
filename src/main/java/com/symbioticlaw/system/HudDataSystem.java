@@ -3,8 +3,10 @@ package com.symbioticlaw.system;
 import com.symbioticlaw.capability.PlayerDataCapability;
 import com.symbioticlaw.data.JobType;
 import com.symbioticlaw.capability.IPlayerData;
+import com.symbioticlaw.data.WorldData;
 import com.symbioticlaw.network.ClientBoundAlmanacUpdatePacket;
 import com.symbioticlaw.network.NetworkHandler;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameRules;
 
@@ -16,15 +18,20 @@ public class HudDataSystem {
         }
 
         player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
+            WorldData worldData = WorldData.get(player.serverLevel());
+            if (worldData == null) return;
+            BlockPos corePos = worldData.getCorePosition();
+            if (corePos.equals(BlockPos.ZERO)) return;
+
             double balance = playerData.getBalance();
-            double x = player.getX();
-            double z = player.getZ();
+            double dx = player.getX() - (corePos.getX() + 0.5);
+            double dz = player.getZ() - (corePos.getZ() + 0.5);
 
             // Calculate M_tax
             double mTax = calculateMTax(playerData);
 
             // Calculate Return Fee
-            double returnFee = calculateReturnFee(x, z, mTax);
+            double returnFee = calculateReturnFee(dx, dz, mTax);
 
             // Calculate Safety Radius
             double safetyRadius = calculateSafetyRadius(balance, mTax);
@@ -33,7 +40,7 @@ public class HudDataSystem {
             int status = determineHudStatus(balance, returnFee);
 
             // Send packet to client
-            NetworkHandler.sendToPlayer(player, new ClientBoundAlmanacUpdatePacket(returnFee, safetyRadius, status));
+            NetworkHandler.sendToPlayer(player, new ClientBoundAlmanacUpdatePacket(returnFee, safetyRadius, status, corePos.getX(), corePos.getY(), corePos.getZ()));
         });
     }
 
@@ -58,8 +65,8 @@ public class HudDataSystem {
         return 1.0 - jobDiscount - affinityDiscount;
     }
 
-    private double calculateReturnFee(double x, double z, double mTax) {
-        double distance = Math.sqrt(x * x + z * z);
+    private double calculateReturnFee(double dx, double dz, double mTax) {
+        double distance = Math.sqrt(dx * dx + dz * dz);
         double rate = getRateForDistance(distance);
         return (20 + (distance * rate)) * mTax;
     }

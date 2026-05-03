@@ -13,6 +13,6 @@ public class ModSounds {
     public static final RegistryObject<SoundEvent> CORE_HUM_LOOP = registerSoundEvent("core_hum_loop");
 
     private static RegistryObject<SoundEvent> registerSoundEvent(String name) {
-        return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(Symbioticlaw.MODID, name)));
+        return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(Symbioticlaw.MODID, name)));
     }
 }

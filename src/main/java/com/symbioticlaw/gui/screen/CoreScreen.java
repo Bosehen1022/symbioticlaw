@@ -335,7 +335,8 @@ public class CoreScreen extends AbstractContainerScreen<PowerCoreMenu> {
             g.drawString(this.font, "§e$" + String.format("%.1f", playerData.getBalance()), infoX, infoY, 0xFFD700, false);
             infoY += 12;
 
-            double dist = Math.sqrt(minecraft.player.position().distanceToSqr(0, 0, 0));
+            net.minecraft.core.BlockPos corePos = this.menu.getCorePos();
+            double dist = Math.sqrt(minecraft.player.position().distanceToSqr(corePos.getX() + 0.5, corePos.getY() + 0.5, corePos.getZ() + 0.5));
             String zone = dist > 5000 ? "蛮荒区" : (dist > 2000 ? "中产区" : "核心区");
             g.drawString(this.font, "§7" + zone, infoX, infoY, 0xAAAAAA, false);
 

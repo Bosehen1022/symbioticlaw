@@ -19,10 +19,11 @@ public class PowerCoreMenu extends AbstractContainerMenu {
     
     private final ContainerData data;
     private final ContainerLevelAccess access;
+    private final BlockPos corePos;
 
     // Server-side constructor - Called from the BlockEntity
     public PowerCoreMenu(int containerId, Inventory playerInventory, BlockPos blockPos) {
-        this(containerId, playerInventory, ContainerLevelAccess.create(playerInventory.player.level(), blockPos), new SimpleContainerData(3));
+        this(containerId, playerInventory, blockPos, ContainerLevelAccess.create(playerInventory.player.level(), blockPos), new SimpleContainerData(3));
         
         // Populate the data container on the server
         playerInventory.player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
@@ -35,14 +36,16 @@ public class PowerCoreMenu extends AbstractContainerMenu {
 
     // Client-side constructor - Called by Forge
     public PowerCoreMenu(int containerId, Inventory playerInventory, FriendlyByteBuf extraData) {
-        this(containerId, playerInventory, ContainerLevelAccess.create(playerInventory.player.level(), extraData.readBlockPos()), new SimpleContainerData(3));
+        BlockPos pos = extraData.readBlockPos();
+        this(containerId, playerInventory, pos, ContainerLevelAccess.create(playerInventory.player.level(), pos), new SimpleContainerData(3));
     }
 
     // Private constructor for internal use
-    private PowerCoreMenu(int containerId, Inventory playerInventory, ContainerLevelAccess access, ContainerData data) {
+    private PowerCoreMenu(int containerId, Inventory playerInventory, BlockPos corePos, ContainerLevelAccess access, ContainerData data) {
         super(ModMenuTypes.CORE_MENU.get(), containerId);
         this.data = data;
         this.access = access;
+        this.corePos = corePos;
         addDataSlots(data);
     }
 
@@ -54,6 +57,10 @@ public class PowerCoreMenu extends AbstractContainerMenu {
 
     public int getClassTier() {
         return this.data.get(2);
+    }
+
+    public BlockPos getCorePos() {
+        return corePos;
     }
 
     @Nonnull

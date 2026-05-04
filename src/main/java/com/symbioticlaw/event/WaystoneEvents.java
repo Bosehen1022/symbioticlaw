@@ -146,16 +146,18 @@ public class WaystoneEvents {
                                           double cost, IPlayerData playerData) {
         boolean isCrossDimension = !fromDim.equals(toDim);
         double baseFee = 20.0;
+        WorldData worldData = WorldData.get(player.serverLevel());
+        BlockPos corePos = worldData != null ? worldData.getCorePosition() : BlockPos.ZERO;
 
         player.sendSystemMessage(Component.literal("§7═══════════════════════════════════"));
         player.sendSystemMessage(Component.literal("§7[费用明细]"));
 
         if (isCrossDimension) {
             player.sendSystemMessage(Component.literal(String.format("§7跨界基费: $%.2f", getCrossDimBaseFee(fromDim))));
-            player.sendSystemMessage(Component.literal(String.format("§7终点区域溢价: $%.2f", getDestinationPrice(to))));
+            player.sendSystemMessage(Component.literal(String.format("§7终点区域溢价: $%.2f", getDestinationPrice(to, corePos))));
         } else {
             double distance = Math.sqrt(from.distSqr(to));
-            double rate = getRateForLocation(from, to);
+            double rate = getRateForLocation(corePos, from, to);
             player.sendSystemMessage(Component.literal(String.format("§7基础费用: $%.2f", baseFee)));
             player.sendSystemMessage(Component.literal(String.format("§7距离: %.0f 格", distance)));
             player.sendSystemMessage(Component.literal(String.format("§7费率: $%.2f/格", rate)));
@@ -175,6 +177,7 @@ public class WaystoneEvents {
 
     private static double getCrossDimBaseFee(ResourceKey<Level> fromDim) {
         if (fromDim.equals(Level.NETHER)) {
+        if (fromDim.equals(Level.NETHER)) {
             return com.symbioticlaw.Config.CROSS_DIM_BASE_FEE_NETHER.get();
         } else if (fromDim.equals(Level.END)) {
             return com.symbioticlaw.Config.CROSS_DIM_BASE_FEE_END.get();
@@ -183,8 +186,8 @@ public class WaystoneEvents {
         }
     }
 
-    private static double getDestinationPrice(BlockPos destination) {
-        double distFromCore = Math.sqrt(destination.distSqr(BlockPos.ZERO));
+    private static double getDestinationPrice(BlockPos destination, BlockPos corePos) {
+        double distFromCore = Math.sqrt(destination.distSqr(corePos));
         if (distFromCore <= 30) {
             return 0;
         } else if (distFromCore <= 2000) {
@@ -196,10 +199,10 @@ public class WaystoneEvents {
         }
     }
 
-    private static double getRateForLocation(BlockPos from, BlockPos to) {
+    private static double getRateForLocation(BlockPos corePos, BlockPos from, BlockPos to) {
         double maxRate = 0.0;
         for (BlockPos loc : new BlockPos[]{from, to}) {
-            double distFromCore = Math.sqrt(loc.distSqr(BlockPos.ZERO));
+            double distFromCore = Math.sqrt(loc.distSqr(corePos));
             double rate;
             if (distFromCore > 5000) {
                 rate = com.symbioticlaw.Config.MILEAGE_RATE_TIER3.get();
@@ -215,7 +218,9 @@ public class WaystoneEvents {
 
     private static void checkDangerZoneWarning(ServerPlayer player) {
         player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
-            double distanceToCore = Math.sqrt(player.distanceToSqr(BlockPos.ZERO.getX(), player.getY(), BlockPos.ZERO.getZ()));
+            WorldData worldData = WorldData.get(player.serverLevel());
+            BlockPos corePos = worldData != null ? worldData.getCorePosition() : BlockPos.ZERO;
+            double distanceToCore = Math.sqrt(player.distanceToSqr(corePos.getX(), player.getY(), corePos.getZ()));
             if (distanceToCore > 5000 && playerData.getClassTier() < 2) {
                 player.sendSystemMessage(Component.literal("§c[⚠ 危险区域警告] 您已进入蛮荒区。请确保余额充足以支付回程费用。"));
             }

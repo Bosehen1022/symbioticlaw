@@ -3,11 +3,20 @@ package com.symbioticlaw.system;
 import com.symbioticlaw.capability.IPlayerData;
 import com.symbioticlaw.capability.PlayerDataCapability;
 import com.symbioticlaw.data.JobType;
+import com.symbioticlaw.data.WorldData;
+import com.symbioticlaw.event.CoreAmbienceHandler;
 import com.symbioticlaw.network.ClientBoundCareerPenaltyPacket;
 import com.symbioticlaw.network.NetworkHandler;
 import com.symbioticlaw.network.ServerBoundCareerActionPacket;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 职业系统 - 处理职业变更、入职、辞职等操作
@@ -15,6 +24,10 @@ import net.minecraft.server.level.ServerPlayer;
  * Chapter 5: Career Binding & Class Solidification
  */
 public class CareerSystem {
+
+    private record PendingSlaveCareerChange(UUID slaveUUID, UUID ownerUUID, int targetProfessionId, double penalty, long expiresAtMs) {}
+
+    private static final Map<UUID, PendingSlaveCareerChange> PENDING_SLAVE_CAREER_CHANGES = new HashMap<>();
     
     // 违约金基础值
     private static final double PENALTY_BASE = 3000.0;
@@ -50,6 +63,47 @@ public class CareerSystem {
      * 处理转职申请（有职业 -> 其他职业）
      */
     private static void handleCareerChangeRequest(ServerPlayer player, IPlayerData playerData, int targetProfessionId) {
+        UUID ownerUUID = playerData.getSlaveOwnerUUID();
+        if (ownerUUID != null) {
+            WorldData worldData = WorldData.get(player.serverLevel());
+            if (worldData == null) return;
+            BlockPos corePos = worldData.getCorePosition();
+            if (corePos.equals(BlockPos.ZERO) || !CoreAmbienceHandler.isNearCore(player, corePos)) {
+                player.sendSystemMessage(Component.literal("§c你必须靠近权力核心才能进行此项操作。"));
+                return;
+            }
+
+            ServerPlayer owner = player.getServer().getPlayerList().getPlayer(ownerUUID);
+            if (owner == null) {
+                player.sendSystemMessage(Component.literal("§c[系统] 债主不在线，无法处理转职申请。"));
+                return;
+            }
+
+            int currentProfessionId = playerData.getProfessionId();
+            if (currentProfessionId == targetProfessionId) {
+                player.sendSystemMessage(Component.literal("§c[系统] 您已经是该职业。"));
+                return;
+            }
+
+            int currentLevel = playerData.getProfessionLevel(currentProfessionId);
+            double penalty = calculatePenalty(currentLevel);
+
+            long expiresAt = System.currentTimeMillis() + 120_000;
+            PENDING_SLAVE_CAREER_CHANGES.put(player.getUUID(), new PendingSlaveCareerChange(player.getUUID(), ownerUUID, targetProfessionId, penalty, expiresAt));
+
+            JobType targetJob = JobType.fromId(targetProfessionId);
+
+            Component msg = Component.literal("§e您的奴隶 §f" + player.getGameProfile().getName() + "§e 请求转职为 §a" + targetJob.getDisplayName()
+                    + "§e。代付违约金：§6$" + String.format("%.2f", penalty) + "§e。")
+                .append(Component.literal(" [§a✔同意§r]").setStyle(Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sy career approve " + player.getUUID() + " " + targetProfessionId))))
+                .append(Component.literal(" "))
+                .append(Component.literal("[§c✖拒绝§r]").setStyle(Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/sy career deny " + player.getUUID() + " " + targetProfessionId))));
+
+            owner.sendSystemMessage(msg);
+            player.sendSystemMessage(Component.literal("§e[系统] 转职申请已提交给债主，请等待其决定。"));
+            return;
+        }
+
         // 检查是否为遗民/奴隶 - 无法转职
         if (playerData.getClassTier() <= 0) {
             player.sendSystemMessage(Component.literal("§c[系统] 遗民和奴隶无法自主申请职业变更。"));
@@ -170,6 +224,73 @@ public class CareerSystem {
         
         // 清除客户端的惩罚信息
         NetworkHandler.sendToPlayer(player, new ClientBoundCareerPenaltyPacket((ClientBoundCareerPenaltyPacket.CareerPenaltyInfo) null));
+    }
+
+    public static void handleSlaveCareerDecision(ServerPlayer owner, UUID slaveUUID, int targetProfessionId, boolean approve) {
+        PendingSlaveCareerChange pending = PENDING_SLAVE_CAREER_CHANGES.get(slaveUUID);
+        if (pending == null) return;
+        if (!pending.ownerUUID.equals(owner.getUUID())) return;
+        if (pending.targetProfessionId != targetProfessionId) return;
+        if (System.currentTimeMillis() > pending.expiresAtMs) {
+            PENDING_SLAVE_CAREER_CHANGES.remove(slaveUUID);
+            return;
+        }
+
+        ServerPlayer slave = owner.getServer().getPlayerList().getPlayer(slaveUUID);
+        if (slave == null) {
+            PENDING_SLAVE_CAREER_CHANGES.remove(slaveUUID);
+            return;
+        }
+
+        if (!approve) {
+            PENDING_SLAVE_CAREER_CHANGES.remove(slaveUUID);
+            owner.sendSystemMessage(Component.literal("§c[系统] 您拒绝了奴隶的转职申请。"));
+            slave.sendSystemMessage(Component.literal("§c[系统] 债主拒绝为您代付违约金。转职申请失败。"));
+            return;
+        }
+
+        owner.getCapability(PlayerDataCapability.INSTANCE).ifPresent(ownerData -> {
+            if (ownerData.getBalance() < pending.penalty) {
+                owner.sendSystemMessage(Component.literal("§c[系统] 余额不足，无法代付违约金。"));
+                slave.sendSystemMessage(Component.literal("§c[系统] 债主余额不足，无法完成代付。"));
+                return;
+            }
+
+            slave.getCapability(PlayerDataCapability.INSTANCE).ifPresent(slaveData -> {
+                int currentProfessionId = slaveData.getProfessionId();
+                JobType currentJob = JobType.fromId(currentProfessionId);
+                JobType targetJob = JobType.fromId(targetProfessionId);
+
+                ownerData.setBalance(ownerData.getBalance() - pending.penalty);
+
+                slaveData.setProfessionLevel(currentProfessionId, 0);
+                slaveData.setProfessionXp(currentProfessionId, 0.0);
+                slaveData.setProfessionId(targetProfessionId);
+                slaveData.setProfessionLevel(targetProfessionId, 1);
+                slaveData.setProfessionXp(targetProfessionId, 0.0);
+
+                slave.level().playSound(null, slave.blockPosition(), net.minecraft.sounds.SoundEvents.BEACON_DEACTIVATE, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 0.5f);
+                slave.level().playSound(null, slave.blockPosition(), net.minecraft.sounds.SoundEvents.LIGHTNING_BOLT_THUNDER, net.minecraft.sounds.SoundSource.WEATHER, 1.0f, 1.0f);
+
+                owner.sendSystemMessage(Component.literal("§a[系统] 已代付违约金 $"+String.format("%.2f", pending.penalty)+"，并批准奴隶转职。"));
+                slave.sendSystemMessage(Component.literal(String.format("§4[☠ 档案清洗] §7您的 [%s] 权限已被吊销，相关技能记忆已格式化。", currentJob.getDisplayName())));
+                slave.sendSystemMessage(Component.literal(String.format("§a[系统] 档案重建完毕。欢迎加入【%s】序列，请从底层重新证明您的价值。", targetJob.getDisplayName())));
+
+                if (owner.getServer() != null) {
+                    Component broadcast = Component.literal(String.format(
+                        "§4[☠ 档案清洗] §7%s 的 [%s] 权限已被吊销，相关技能记忆已格式化。欢迎加入【%s】序列，请从底层重新证明您的价值。",
+                        slave.getGameProfile().getName(),
+                        currentJob.getDisplayName(),
+                        targetJob.getDisplayName()
+                    ));
+                    owner.getServer().getPlayerList().broadcastSystemMessage(broadcast, false);
+                }
+
+                PlayerDataCapability.sync(owner);
+                PlayerDataCapability.sync(slave);
+                PENDING_SLAVE_CAREER_CHANGES.remove(slaveUUID);
+            });
+        });
     }
     
     /**

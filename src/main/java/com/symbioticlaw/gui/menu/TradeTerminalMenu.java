@@ -2,6 +2,7 @@ package com.symbioticlaw.gui.menu;
 
 import com.symbioticlaw.capability.PlayerDataCapability;
 import com.symbioticlaw.data.MarketInfo;
+import com.symbioticlaw.registry.ModBlocks;
 import com.symbioticlaw.registry.ModMenuTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -21,9 +22,10 @@ public class TradeTerminalMenu extends AbstractContainerMenu {
     private final IItemHandler sellSlotHandler = new ItemStackHandler(1);
     public final List<MarketInfo.MarketItemWithPrice> marketItemsWithPrices = new ArrayList<>();
     private final ContainerData data;
+    private final ContainerLevelAccess access;
 
     public TradeTerminalMenu(int pContainerId, Inventory pPlayerInventory, BlockPos pBlockPos) {
-        this(pContainerId, pPlayerInventory, new SimpleContainerData(4));
+        this(pContainerId, pPlayerInventory, ContainerLevelAccess.create(pPlayerInventory.player.level(), pBlockPos), new SimpleContainerData(4));
 
         pPlayerInventory.player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
             int profId = playerData.getProfessionId();
@@ -38,7 +40,7 @@ public class TradeTerminalMenu extends AbstractContainerMenu {
     }
 
     public TradeTerminalMenu(int pContainerId, Inventory pPlayerInventory, Player player) {
-        this(pContainerId, pPlayerInventory, new SimpleContainerData(4));
+        this(pContainerId, pPlayerInventory, ContainerLevelAccess.NULL, new SimpleContainerData(4));
 
         player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
             int profId = playerData.getProfessionId();
@@ -53,12 +55,13 @@ public class TradeTerminalMenu extends AbstractContainerMenu {
     }
 
     public TradeTerminalMenu(int pContainerId, Inventory pPlayerInventory, FriendlyByteBuf extraData) {
-        this(pContainerId, pPlayerInventory, new SimpleContainerData(4));
+        this(pContainerId, pPlayerInventory, ContainerLevelAccess.create(pPlayerInventory.player.level(), extraData.readBlockPos()), new SimpleContainerData(4));
     }
 
-    private TradeTerminalMenu(int pContainerId, Inventory pPlayerInventory, ContainerData data) {
+    private TradeTerminalMenu(int pContainerId, Inventory pPlayerInventory, ContainerLevelAccess access, ContainerData data) {
         super(ModMenuTypes.TRADE_TERMINAL_MENU.get(), pContainerId);
         this.data = data;
+        this.access = access;
 
         this.addSlot(new SlotItemHandler(sellSlotHandler, 0, 8, 62));
 
@@ -117,7 +120,7 @@ public class TradeTerminalMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(@Nonnull Player pPlayer) {
-        return true;
+        return stillValid(this.access, pPlayer, ModBlocks.TRADE_TERMINAL.get());
     }
 
     public ItemStack getSellSlotItem() {

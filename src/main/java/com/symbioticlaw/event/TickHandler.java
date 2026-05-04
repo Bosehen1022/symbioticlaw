@@ -7,6 +7,8 @@ import com.symbioticlaw.system.ClassSystem;
 import com.symbioticlaw.capability.PlayerDataCapability;
 import com.symbioticlaw.system.ReportSystem;
 import com.symbioticlaw.system.TaxSystem;
+import com.symbioticlaw.system.ExileSystem;
+import com.symbioticlaw.system.VisaSystem;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -23,6 +25,8 @@ public class TickHandler {
     private static final com.symbioticlaw.system.SubliminalSystem subliminalSystem = new com.symbioticlaw.system.SubliminalSystem();
     private static final com.symbioticlaw.system.HudDataSystem hudDataSystem = new com.symbioticlaw.system.HudDataSystem();
     private static final com.symbioticlaw.system.DailyQuotaSystem dailyQuotaSystem = new com.symbioticlaw.system.DailyQuotaSystem();
+    private static final VisaSystem visaSystem = new VisaSystem();
+    private static final ExileSystem exileSystem = new ExileSystem();
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
@@ -56,6 +60,8 @@ public class TickHandler {
 
             if (gameTime % 1200 == 0) { // Every 60 seconds
                 affinitySystem.tick(server);
+                visaSystem.tick(server);
+                exileSystem.tick(server);
             }
 
             if (gameTime % 24000 == 0) { // Every 20 minutes (1 Minecraft day)

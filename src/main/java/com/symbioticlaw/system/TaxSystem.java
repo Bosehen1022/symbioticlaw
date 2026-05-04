@@ -90,16 +90,19 @@ public class TaxSystem {
         IPlayerData playerData = player.getCapability(PlayerDataCapability.INSTANCE).orElse(null);
         if (playerData == null) return Double.MAX_VALUE;
 
+        WorldData worldData = WorldData.get(player.serverLevel());
+        BlockPos corePos = worldData != null ? worldData.getCorePosition() : BlockPos.ZERO;
+
         boolean isOverworldFrom = fromDim.equals(Level.OVERWORLD);
         boolean isOverworldTo = toDim.equals(Level.OVERWORLD);
 
         double baseCost;
         if (isOverworldFrom && isOverworldTo) {
             // Overworld to Overworld
-            baseCost = calculateOverworldMileageTax(from, to);
+            baseCost = calculateOverworldMileageTax(from, to, corePos);
         } else if (!isOverworldFrom && isOverworldTo) {
             // Other dimension to Overworld
-            baseCost = calculateCrossDimensionTax(fromDim, to);
+            baseCost = calculateCrossDimensionTax(fromDim, to, corePos);
         } else if (isOverworldFrom && !isOverworldTo) {
             // Overworld to other dimension
             // 规格 §4.5: TotalCost = 维度进入税 + 目的地里程费
@@ -117,12 +120,14 @@ public class TaxSystem {
     }
 
     public double calculateMileageTax(ServerPlayer player, BlockPos from, BlockPos to) {
-        return calculateOverworldMileageTax(from, to);
+        WorldData worldData = WorldData.get(player.serverLevel());
+        BlockPos corePos = worldData != null ? worldData.getCorePosition() : BlockPos.ZERO;
+        return calculateOverworldMileageTax(from, to, corePos);
     }
 
-    private double calculateOverworldMileageTax(BlockPos from, BlockPos to) {
+    private double calculateOverworldMileageTax(BlockPos from, BlockPos to, BlockPos corePos) {
         double distance = Math.sqrt(from.distSqr(to));
-        double rate = getRateForLocation(from, to);
+        double rate = getRateForLocation(corePos, from, to);
         return 20 + (distance * rate);
     }
 
@@ -139,7 +144,7 @@ public class TaxSystem {
         return 20 + (distance * rate);
     }
 
-    private double calculateCrossDimensionTax(ResourceKey<Level> fromDim, BlockPos to) {
+    private double calculateCrossDimensionTax(ResourceKey<Level> fromDim, BlockPos to, BlockPos corePos) {
         double baseFee;
         if (fromDim.equals(Level.NETHER)) {
             baseFee = Config.CROSS_DIM_BASE_FEE_NETHER.get();
@@ -149,14 +154,14 @@ public class TaxSystem {
             baseFee = Config.CROSS_DIM_BASE_FEE_MODDED.get();
         }
 
-        double destinationPrice = getDestinationPrice(to);
+        double destinationPrice = getDestinationPrice(to, corePos);
         return baseFee + destinationPrice;
     }
 
-    private double getRateForLocation(BlockPos... locations) {
+    private double getRateForLocation(BlockPos corePos, BlockPos... locations) {
         double maxRate = 0.0;
         for (BlockPos loc : locations) {
-            double distFromCore = Math.sqrt(loc.distSqr(BlockPos.ZERO));
+            double distFromCore = Math.sqrt(loc.distSqr(corePos));
             if (distFromCore > 5000) {
                 maxRate = Math.max(maxRate, Config.MILEAGE_RATE_TIER3.get());
             } else if (distFromCore > 2000) {
@@ -181,8 +186,8 @@ public class TaxSystem {
         }
     }
 
-    private double getDestinationPrice(BlockPos destination) {
-        double distFromCore = Math.sqrt(destination.distSqr(BlockPos.ZERO));
+    private double getDestinationPrice(BlockPos destination, BlockPos corePos) {
+        double distFromCore = Math.sqrt(destination.distSqr(corePos));
         if (distFromCore <= 30) {
             return 0;
         } else if (distFromCore <= 2000) {

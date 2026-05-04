@@ -35,7 +35,7 @@ public class PlayerDataCapability {
     @SubscribeEvent
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
         if (event.getObject() instanceof Player) {
-            event.addCapability(ResourceLocation.parse("symbioticlaw:player_data"), new PlayerDataProvider());
+            event.addCapability(new ResourceLocation(Symbioticlaw.MODID, "player_data"), new PlayerDataProvider());
         }
     }
 

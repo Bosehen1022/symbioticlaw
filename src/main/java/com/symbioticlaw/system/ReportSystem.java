@@ -76,12 +76,15 @@ public class ReportSystem {
         for (MarketItem item : volatileItems) {
             double currentPrice = getCurrentPrice(item);
             double change = (currentPrice / item.lastCyclePrice - 1) * 100;
+            net.minecraft.resources.ResourceLocation itemRl = net.minecraft.resources.ResourceLocation.tryParse(item.itemId);
+            net.minecraft.world.item.Item itemObj = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
+            String itemName = itemObj != null ? new ItemStack(itemObj).getDisplayName().getString() : item.itemId;
 
             if (change > 30) {
-                server.getPlayerList().broadcastSystemMessage(Component.literal(String.format("§a[📈 机会] %s 极度紧缺，价格飙升 +%.0f%%。核心建议：加大生产投入。", new ItemStack(ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.parse(item.itemId))).getDisplayName().getString(), change)), false);
+                server.getPlayerList().broadcastSystemMessage(Component.literal(String.format("§a[📈 机会] %s 极度紧缺，价格飙升 +%.0f%%。核心建议：加大生产投入。", itemName, change)), false);
                 fluctuation = true;
             } else if (change < -30) {
-                server.getPlayerList().broadcastSystemMessage(Component.literal(String.format("§c[📉 熔断] %s 产能过剩，价格暴跌 -%.0f%%。核心建议：立即去库存。", new ItemStack(ForgeRegistries.ITEMS.getValue(net.minecraft.resources.ResourceLocation.parse(item.itemId))).getDisplayName().getString(), Math.abs(change))), false);
+                server.getPlayerList().broadcastSystemMessage(Component.literal(String.format("§c[📉 熔断] %s 产能过剩，价格暴跌 -%.0f%%。核心建议：立即去库存。", itemName, Math.abs(change))), false);
                 fluctuation = true;
             }
         }

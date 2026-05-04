@@ -1,11 +1,11 @@
 package com.symbioticlaw.network;
 
-import com.symbioticlaw.data.WorldData;
-import com.symbioticlaw.system.ChefWholesaleSystem;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -13,6 +13,9 @@ import java.util.function.Supplier;
  * 客户端 -> 服务器
  */
 public class ServerBoundRequestEconomySyncPacket {
+
+    private static final long MIN_REQUEST_INTERVAL_MS = 1500;
+    private static final Map<java.util.UUID, Long> LAST_REQUEST_TIME = new HashMap<>();
     
     public ServerBoundRequestEconomySyncPacket() {}
     
@@ -28,6 +31,12 @@ public class ServerBoundRequestEconomySyncPacket {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
             if (player != null) {
+                long now = System.currentTimeMillis();
+                Long last = LAST_REQUEST_TIME.get(player.getUUID());
+                if (last != null && now - last < MIN_REQUEST_INTERVAL_MS) {
+                    return;
+                }
+                LAST_REQUEST_TIME.put(player.getUUID(), now);
                 // 发送完整经济数据
                 EconomySyncManager.sendEconomyData(player);
             }

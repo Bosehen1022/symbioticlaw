@@ -67,13 +67,11 @@ public class CoreInteractionEvents {
      * 安全地添加方块到集合（如果方块存在且不是空气）
      */
     private static void addBlockIfExists(Set<Block> set, String blockId) {
-        try {
-            Block block = ForgeRegistries.BLOCKS.getValue(ResourceLocation.parse(blockId));
-            if (block != null && block != Blocks.AIR) {
-                set.add(block);
-            }
-        } catch (Exception e) {
-            // 方块不存在，忽略
+        ResourceLocation blockRl = ResourceLocation.tryParse(blockId);
+        if (blockRl == null) return;
+        Block block = ForgeRegistries.BLOCKS.getValue(blockRl);
+        if (block != null && block != Blocks.AIR) {
+            set.add(block);
         }
     }
 

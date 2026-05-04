@@ -2,9 +2,11 @@ package com.symbioticlaw.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.symbioticlaw.professions.Profession;
+import com.symbioticlaw.system.CareerSystem;
 import com.symbioticlaw.system.P2PSystem;
 import com.symbioticlaw.system.ProfessionSystem;
 import com.symbioticlaw.system.SlaveSystem;
@@ -37,7 +39,7 @@ public class ContractCommand {
         );
 
         dispatcher.register(Commands.literal("sy")
-                .requires(s -> s.hasPermission(2))
+                .requires(s -> s.hasPermission(0))
                 .then(Commands.literal("contract")
                         .then(Commands.literal("initiate")
                                 .then(Commands.argument("slave", EntityArgument.player())
@@ -117,6 +119,28 @@ public class ContractCommand {
                                             }
                                             return 1;
                                         })))
+                )
+                .then(Commands.literal("career")
+                        .then(Commands.literal("approve")
+                                .then(Commands.argument("slaveUUID", StringArgumentType.string())
+                                        .then(Commands.argument("professionId", IntegerArgumentType.integer())
+                                                .executes(context -> {
+                                                    ServerPlayer owner = context.getSource().getPlayerOrException();
+                                                    UUID slaveUUID = UUID.fromString(StringArgumentType.getString(context, "slaveUUID"));
+                                                    int professionId = IntegerArgumentType.getInteger(context, "professionId");
+                                                    CareerSystem.handleSlaveCareerDecision(owner, slaveUUID, professionId, true);
+                                                    return 1;
+                                                }))))
+                        .then(Commands.literal("deny")
+                                .then(Commands.argument("slaveUUID", StringArgumentType.string())
+                                        .then(Commands.argument("professionId", IntegerArgumentType.integer())
+                                                .executes(context -> {
+                                                    ServerPlayer owner = context.getSource().getPlayerOrException();
+                                                    UUID slaveUUID = UUID.fromString(StringArgumentType.getString(context, "slaveUUID"));
+                                                    int professionId = IntegerArgumentType.getInteger(context, "professionId");
+                                                    CareerSystem.handleSlaveCareerDecision(owner, slaveUUID, professionId, false);
+                                                    return 1;
+                                                }))))
                 )
                 .then(Commands.literal("job")
 //                        .then(Commands.literal("join")

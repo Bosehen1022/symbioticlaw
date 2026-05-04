@@ -2,6 +2,7 @@ package com.symbioticlaw.system;
 
 import com.symbioticlaw.capability.IPlayerData;
 import com.symbioticlaw.capability.PlayerDataCapability;
+import com.symbioticlaw.data.WorldData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -35,7 +36,11 @@ public class IncomeManager {
                         owner.sendSystemMessage(Component.literal(String.format("§b[税金] 您的奴隶 %s 为您贡献了 $%.2f. §7来源: %s.", player.getGameProfile().getName(), ownerShare, source)));
                     });
                 } else {
-                    // Owner is offline, handle offline income (to be implemented)
+                    WorldData worldData = WorldData.get(player.serverLevel());
+                    if (worldData != null) {
+                        worldData.getUnclaimedIncomeData().addIncome(ownerUUID, ownerShare);
+                        worldData.setDirty();
+                    }
                 }
             }
         });

@@ -1,7 +1,5 @@
 package com.symbioticlaw.network;
 
-import com.symbioticlaw.gui.screen.ExecutionListScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -36,7 +34,8 @@ public class ClientBoundExecutionListPacket {
     public static void handle(ClientBoundExecutionListPacket msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-                Minecraft.getInstance().setScreen(new ExecutionListScreen(Minecraft.getInstance().screen, msg.executionList));
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                mc.setScreen(new com.symbioticlaw.gui.screen.ExecutionListScreen(mc.screen, msg.executionList));
             });
         });
         ctx.get().setPacketHandled(true);

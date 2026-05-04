@@ -49,11 +49,17 @@ public class ServerBoundSellItemPacket {
 
             if (!(player.containerMenu instanceof TradeTerminalMenu menu)) return;
 
-            MarketData marketData = WorldData.get(player.serverLevel()).getMarketData();
+            if (packet.amount <= 0 || packet.amount > 64) return;
+            if (packet.itemId == null || packet.itemId.length() > 128) return;
+
+            WorldData worldData = WorldData.get(player.serverLevel());
+            if (worldData == null) return;
+            MarketData marketData = worldData.getMarketData();
             MarketItem marketItem = marketData.getMarketItem(packet.itemId);
             if (marketItem == null) return;
 
-            Item item = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(packet.itemId));
+            ResourceLocation itemRl = ResourceLocation.tryParse(packet.itemId);
+            Item item = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
             if (item == null) return;
 
             ItemStack itemStack = new ItemStack(item, packet.amount);
@@ -149,6 +155,8 @@ public class ServerBoundSellItemPacket {
                     marketItem.currentStock += packet.amount;
                     player.getInventory().clearOrCountMatchingItems(p -> p.getItem() == item, packet.amount, player.getInventory());
 
+                    PlayerDataCapability.sync(player);
+
                     // Daily Quota Logic for Farmer
 //                    if (playerData.getJobType() == JobType.FARMER && packet.itemId.equals(playerData.getDailyQuotaItem()) && playerData.getDailyQuotaCompletionTime() == 0) {
 //                        long currentProgress = playerData.getDailyQuotaProgress() + packet.amount;
@@ -160,25 +168,6 @@ public class ServerBoundSellItemPacket {
 //                            player.sendSystemMessage(Component.literal("§a[✔] 每日契约完成！获得了 $" + playerData.getDailyQuotaReward() + " 的保供奖金。"));
 //                        }
 //                    }
-
-                    // TODO: Fix this packet
-//                    NetworkHandler.sendToPlayer(player, new PlayerDataSyncPacket(
-//                        playerData.getJobType(),
-//                        playerData.getMinerLevel(),
-//                        playerData.getMinerXp(),
-//                        playerData.getFarmerLevel(),
-//                        playerData.getFarmerXp(),
-//                        playerData.getTotalBiomassSold(),
-//                        playerData.getChefLevel(),
-//                        playerData.getChefXp(),
-//                        playerData.getTotalDishesServed(),
-//                        playerData.getBalance(),
-//                        playerData.getDailyQuotaItem(),
-//                        playerData.getDailyQuotaRequiredAmount(),
-//                        playerData.getDailyQuotaProgress(),
-//                        playerData.getDailyQuotaReward(),
-//                        playerData.getDailyQuotaCompletionTime()
-//                    ));
 
                     List<com.symbioticlaw.data.MarketInfo.MarketItemWithPrice> itemsWithPrices = new ArrayList<>();
                     for (MarketItem mi : marketData.getAllItems()) {

@@ -1,7 +1,5 @@
 package com.symbioticlaw.network;
 
-import com.symbioticlaw.gui.screen.TradeTerminalScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -33,7 +31,7 @@ public class UpdateBulkPriceS2CPacket {
         NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-                if (Minecraft.getInstance().screen instanceof TradeTerminalScreen screen) {
+                if (net.minecraft.client.Minecraft.getInstance().screen instanceof com.symbioticlaw.gui.screen.TradeTerminalScreen screen) {
                     screen.updateBulkPriceData(bulkPrice, singlePrice);
                 }
             });

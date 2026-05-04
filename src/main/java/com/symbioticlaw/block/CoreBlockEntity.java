@@ -49,7 +49,7 @@ public class CoreBlockEntity extends BlockEntity implements MenuProvider {
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int pContainerId, @Nonnull Inventory pPlayerInventory, @Nonnull Player pPlayer) {
-        return new PowerCoreMenu(pContainerId, pPlayerInventory, pPlayer);
+        return new PowerCoreMenu(pContainerId, pPlayerInventory, this.worldPosition);
     }
 
     public static void serverTick(@Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState state, @Nonnull CoreBlockEntity blockEntity) {

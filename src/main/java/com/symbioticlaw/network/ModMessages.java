@@ -1,5 +1,6 @@
 package com.symbioticlaw.network;
 
+import com.symbioticlaw.Symbioticlaw;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -11,7 +12,7 @@ public class ModMessages {
 
     public static void register() {
         INSTANCE = NetworkRegistry.ChannelBuilder
-            .named(ResourceLocation.parse("symbioticlaw:messages"))
+            .named(new ResourceLocation(Symbioticlaw.MODID, "messages"))
             .networkProtocolVersion(() -> "1.0")
             .clientAcceptedVersions(s -> true)
             .serverAcceptedVersions(s -> true)

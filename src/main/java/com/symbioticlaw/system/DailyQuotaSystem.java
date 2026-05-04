@@ -141,8 +141,16 @@ public class DailyQuotaSystem {
             playerData.setDailyQuotaReward(reward);
             
             String itemName = selectedItem;
-            try {
-                itemName = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(selectedItem)).getDescription().getString();
+            ResourceLocation itemRl = ResourceLocation.tryParse(selectedItem);
+            net.minecraft.world.item.Item item = itemRl != null ? ForgeRegistries.ITEMS.getValue(itemRl) : null;
+            if (item != null) {
+                itemName = item.getDescription().getString();
+            }
+                }
+            } catch (Exception e) {
+                // Use raw ID if name lookup fails
+            }
+                    }
             } catch (Exception e) {
                 // Use raw ID if name lookup fails
             }
@@ -230,9 +238,11 @@ public class DailyQuotaSystem {
             playerData.setDailyQuotaProgress(newProgress);
             
             String itemName = quotaItem;
-            try {
-                itemName = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(quotaItem)).getDescription().getString();
-            } catch (Exception e) {}
+            ResourceLocation itemRl2 = ResourceLocation.tryParse(quotaItem);
+            net.minecraft.world.item.Item item2 = itemRl2 != null ? ForgeRegistries.ITEMS.getValue(itemRl2) : null;
+            if (item2 != null) {
+                itemName = item2.getDescription().getString();
+            }
             
             if (newProgress >= requiredAmount) {
                 // Quota completed!
@@ -276,9 +286,11 @@ public class DailyQuotaSystem {
                 result[0] = "§a今日定额已完成";
             } else {
                 String itemName = quotaItem;
-                try {
-                    itemName = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(quotaItem)).getDescription().getString();
-                } catch (Exception e) {}
+                ResourceLocation itemRl2 = ResourceLocation.tryParse(quotaItem);
+                net.minecraft.world.item.Item item2 = itemRl2 != null ? ForgeRegistries.ITEMS.getValue(itemRl2) : null;
+                if (item2 != null) {
+                    itemName = item2.getDescription().getString();
+                }
                 result[0] = String.format("§e%d/%d %s", 
                     playerData.getDailyQuotaProgress(), 
                     playerData.getDailyQuotaRequiredAmount(),

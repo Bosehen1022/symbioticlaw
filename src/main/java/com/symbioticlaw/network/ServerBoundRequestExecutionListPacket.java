@@ -1,5 +1,8 @@
 package com.symbioticlaw.network;
 
+import com.symbioticlaw.capability.PlayerDataCapability;
+import com.symbioticlaw.data.WorldData;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -21,10 +24,26 @@ public class ServerBoundRequestExecutionListPacket {
             ServerPlayer player = ctx.get().getSender();
             if (player == null || !player.hasPermissions(2)) return;
 
-            // TODO: Get actual execution list
             List<String> executionList = new ArrayList<>();
-            executionList.add("Player1");
-            executionList.add("Player2");
+            WorldData worldData = WorldData.get(player.serverLevel());
+            if (worldData == null) return;
+            BlockPos corePos = worldData.getCorePosition();
+            if (corePos.equals(BlockPos.ZERO)) return;
+
+            for (ServerPlayer p : player.getServer().getPlayerList().getPlayers()) {
+                p.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
+                    int tier = playerData.getClassTier();
+                    if (tier == 2) return;
+                    double dist = Math.sqrt(p.distanceToSqr(corePos.getX(), p.getY(), corePos.getZ()));
+                    int allowed = tier == 0 ? 100 : 200;
+                    boolean hasVisa = playerData.getVisaExpireTime() > p.level().getGameTime();
+                    boolean hasPass = playerData.getSurvivalPassExpireTime() > p.level().getGameTime();
+                    boolean allowedByPermit = (tier == 1 && hasVisa) || (tier == 0 && hasPass);
+                    if (dist > allowed && !allowedByPermit) {
+                        executionList.add(p.getGameProfile().getName());
+                    }
+                });
+            }
 
             NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new ClientBoundExecutionListPacket(executionList));
         });

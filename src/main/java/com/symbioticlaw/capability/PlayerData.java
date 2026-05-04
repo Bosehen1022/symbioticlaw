@@ -431,10 +431,10 @@ public class PlayerData implements IPlayerData, INBTSerializable<CompoundTag> {
     public void removeSlave(UUID slaveUUID) { slaves.remove(slaveUUID); }
     
     @Override
-    public UUID getMasterUUID() { return masterUUID; }
+    public UUID getMasterUUID() { return slaveOwnerUUID; }
     
     @Override
-    public void setMasterUUID(UUID masterUUID) { this.masterUUID = masterUUID; }
+    public void setMasterUUID(UUID masterUUID) { this.slaveOwnerUUID = masterUUID; }
     
     @Override
     public double getPendingTaxForMaster(UUID masterUUID) { 
@@ -545,7 +545,6 @@ public class PlayerData implements IPlayerData, INBTSerializable<CompoundTag> {
         
         // Chapter 5 data
         this.slaves = new java.util.ArrayList<>(source.getSlaves());
-        this.masterUUID = source.getMasterUUID();
         this.lastWelfareTime = source.getLastWelfareTime();
         this.lastSurvivalPassTime = source.getLastSurvivalPassTime();
         this.survivalPassExpiry = source.getSurvivalPassExpiry();
@@ -611,7 +610,6 @@ public class PlayerData implements IPlayerData, INBTSerializable<CompoundTag> {
         }
         nbt.put("slaves", slavesTag);
         nbt.putInt("slaveCount", slaves.size());
-        if (masterUUID != null) nbt.putUUID("masterUUID", masterUUID);
         nbt.putLong("lastWelfareTime", lastWelfareTime);
         nbt.putLong("lastSurvivalPassTime", lastSurvivalPassTime);
         nbt.putLong("survivalPassExpiry", survivalPassExpiry);
@@ -668,6 +666,7 @@ public class PlayerData implements IPlayerData, INBTSerializable<CompoundTag> {
         }
         
         if (nbt.contains("slaveOwnerUUID")) this.slaveOwnerUUID = nbt.getUUID("slaveOwnerUUID");
+        if (!nbt.contains("slaveOwnerUUID") && nbt.contains("masterUUID")) this.slaveOwnerUUID = nbt.getUUID("masterUUID");
         if (nbt.contains("affinityPartnerUUID")) {
             this.affinityPartnerUUID = nbt.getUUID("affinityPartnerUUID");
             if (nbt.contains("affinityPartnerName")) {
@@ -714,7 +713,6 @@ public class PlayerData implements IPlayerData, INBTSerializable<CompoundTag> {
                 }
             }
         }
-        if (nbt.contains("masterUUID")) this.masterUUID = nbt.getUUID("masterUUID");
         if (nbt.contains("lastWelfareTime")) this.lastWelfareTime = nbt.getLong("lastWelfareTime");
         if (nbt.contains("lastSurvivalPassTime")) this.lastSurvivalPassTime = nbt.getLong("lastSurvivalPassTime");
         if (nbt.contains("survivalPassExpiry")) this.survivalPassExpiry = nbt.getLong("survivalPassExpiry");

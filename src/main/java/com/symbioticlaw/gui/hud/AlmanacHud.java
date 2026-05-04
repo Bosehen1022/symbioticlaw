@@ -1,7 +1,6 @@
 package com.symbioticlaw.gui.hud;
 
 import com.symbioticlaw.client.ClientData;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
@@ -24,7 +23,8 @@ public class AlmanacHud {
         }
 
         BlockPos playerPos = player.getOnPos();
-        double distanceToCore = Math.sqrt(playerPos.distSqr(BlockPos.ZERO));
+        BlockPos corePos = new BlockPos(ClientData.coreX, ClientData.coreY, ClientData.coreZ);
+        double distanceToCore = Math.sqrt(playerPos.distSqr(corePos));
 
         double returnCost = ClientData.returnFee;
         double safetyRadius = ClientData.safetyRadius;

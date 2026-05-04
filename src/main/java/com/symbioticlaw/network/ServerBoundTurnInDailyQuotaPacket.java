@@ -21,6 +21,7 @@ public class ServerBoundTurnInDailyQuotaPacket {
         NetworkEvent.Context context = supplier.get();
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
+            if (player == null) return;
             com.symbioticlaw.system.DailyQuotaSystem.turnInQuota(player);
         });
         return true;

@@ -1,7 +1,6 @@
 package com.symbioticlaw.network;
 
 import com.symbioticlaw.data.WorldData;
-import com.symbioticlaw.data.WorldData;
 import com.symbioticlaw.system.BroadcastSystem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;

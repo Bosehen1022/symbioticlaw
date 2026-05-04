@@ -1,0 +1,903 @@
+From 2e2262f16fb4c107ba194c7c8d65988ce17f3c6b Mon Sep 17 00:00:00 2001
+From: Bosehen1022 <Bosehen1022@users.noreply.github.com>
+Date: Sun, 3 May 2026 05:28:33 +0000
+Subject: [PATCH] =?UTF-8?q?feat:=20=E6=9F=A5=E7=9C=8B=E9=A1=B9=E7=9B=AE?=
+ =?UTF-8?q?=E8=A7=84=E6=A0=BC=E4=B9=A6?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-authored-by: traeagent <traeagent@users.noreply.github.com>
+---
+ _gh_repo                               |   1 +
+ patch_a939cd4_tick_event_mapping.patch | 785 +++++++++++++++++++++++++
+ patch_bce9815_offline_income.patch     |  77 +++
+ 3 files changed, 863 insertions(+)
+ create mode 160000 _gh_repo
+ create mode 100644 patch_a939cd4_tick_event_mapping.patch
+ create mode 100644 patch_bce9815_offline_income.patch
+
+diff --git a/_gh_repo b/_gh_repo
+new file mode 160000
+index 0000000..bce9815
+--- /dev/null
++++ b/_gh_repo
+@@ -0,0 +1 @@
++Subproject commit bce9815e5364ef90e639e90b9e4bc8f336c8c15f
+diff --git a/patch_a939cd4_tick_event_mapping.patch b/patch_a939cd4_tick_event_mapping.patch
+new file mode 100644
+index 0000000..855e1a9
+--- /dev/null
++++ b/patch_a939cd4_tick_event_mapping.patch
+@@ -0,0 +1,785 @@
++From a939cd4c30c340d653d5a09cdcbfb7f19e5bd772 Mon Sep 17 00:00:00 2001
++From: Bosehen <soptud@gmail.com>
++Date: Sun, 3 May 2026 05:15:34 +0000
++Subject: [PATCH] feat: align tick schedule and event mapping
++
++---
++ doc/V51_EVENT_MAPPING_IMPLEMENTATION.md       |  45 ++
++ doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md      |  12 +-
++ doc/V51_TICK_SCHEDULE_IMPLEMENTATION.md       |  23 +
++ .../com/symbioticlaw/data/PlayerData.java     | 528 ------------------
++ .../com/symbioticlaw/event/TickHandler.java   |   6 +
++ .../com/symbioticlaw/system/ExileSystem.java  |  27 +
++ .../symbioticlaw/system/ProfessionSystem.java |   1 -
++ .../com/symbioticlaw/system/VisaSystem.java   |  28 +
++ 8 files changed, 135 insertions(+), 535 deletions(-)
++ create mode 100644 doc/V51_EVENT_MAPPING_IMPLEMENTATION.md
++ create mode 100644 doc/V51_TICK_SCHEDULE_IMPLEMENTATION.md
++ delete mode 100644 src/main/java/com/symbioticlaw/data/PlayerData.java
++ create mode 100644 src/main/java/com/symbioticlaw/system/ExileSystem.java
++ create mode 100644 src/main/java/com/symbioticlaw/system/VisaSystem.java
++
++diff --git a/doc/V51_EVENT_MAPPING_IMPLEMENTATION.md b/doc/V51_EVENT_MAPPING_IMPLEMENTATION.md
++new file mode 100644
++index 0000000..baed2af
++--- /dev/null
+++++ b/doc/V51_EVENT_MAPPING_IMPLEMENTATION.md
++@@ -0,0 +1,45 @@
+++# V51 Event Mapping Implementation
+++
+++来源：`doc/V51_Specification.md` → “Event Mapping（事件映射）”
+++
+++## 1) Player Lifecycle Events
+++
+++### PlayerLoggedInEvent
+++- 处理器：`com.symbioticlaw.event.IdentityEvents#onPlayerLogin`
+++- 行为：
+++  - 提示债主离线收益
+++  - 同步 PlayerData 到客户端（`PlayerDataSyncPacket`）
+++
+++### PlayerRespawnEvent
+++- 处理器：`com.symbioticlaw.event.IdentityEvents#onPlayerRespawn`
+++- 行为：
+++  - Fall Event（堕落事件）强制遣返与广播
+++
+++## 2) Combat / Death Events
+++
+++### LivingDeathEvent
+++- 处理器：`com.symbioticlaw.event.IdentityEvents#onLivingDeath`
+++- 行为：
+++  - 死亡税（奴隶免疫）
+++  - 余额跌破阈值后标记堕落并由 respawn 阶段处理遣返
+++
+++## 3) Interaction Events
+++
+++### RightClickBlock（核心/终端）
+++- Core：`com.symbioticlaw.block.CoreBlock#use`
+++- Terminal：`com.symbioticlaw.block.TradeTerminalBlock#use`
+++- 行为：
+++  - 打开对应 Menu/Screen
+++  - 真实业务逻辑通过 C2S 包在服务端执行
+++
+++## 4) Server Tick Events（统一调度）
+++
+++### ServerTickEvent
+++- 调度器：`com.symbioticlaw.event.TickHandler#onServerTick`
+++- 频率：
+++  - 每 tick：在线 tick、idle tick、HUD 数据推送、潜意识宣传触发
+++  - 20 tick：BorderSystem
+++  - 200 tick：ClassSystem
+++  - 1200 tick：AffinitySystem、VisaSystem、ExileSystem
+++  - 24000 tick：ReportSystem（行政日报）
+++
++diff --git a/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md b/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md
++index c5edb9f..9675d99 100644
++--- a/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md
+++++ b/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md
++@@ -16,25 +16,25 @@
++ - [x] V51-B04 TickHandler 调度所有周期系统
++ 
++ ## C. Event Mapping（事件映射）
++-- [ ] V51-C01 事件映射逐条对照（待补齐：逐事件 → 触发点 → 系统方法 → 数据变更落点）
+++- [x] V51-C01 事件映射逐条对照（见 doc/V51_EVENT_MAPPING_IMPLEMENTATION.md）
++ 
++ ## D. Class Structure（代码结构）
++ - [ ] V51-D01 代码结构逐条对照（待补齐：每个类是否按 Blueprint 命名/职责拆分）
++ 
++ ## E. Tick Schedule（Tick 调度表）
++-- [ ] V51-E01 Tick 调度表逐条对照（待补齐：频率、触发条件、离线补算）
+++- [x] V51-E01 Tick 调度表逐条对照（见 doc/V51_TICK_SCHEDULE_IMPLEMENTATION.md）
++ 
++ ## F. Forge Registry Blueprint
++ - [x] V51-F01 Blocks：仅 power_core、trade_terminal
++-- [ ] V51-F02 Items：规范化注册与资源路径一致性（待核对全量）
++-- [ ] V51-F03 Sounds：核心嗡鸣音效资源与注册一致（待核对资源文件）
++-- [ ] V51-F04 Menus/Screens：仅两个方块入口，菜单仍有效校验一致
+++- [x] V51-F02 Items：规范化注册与资源路径一致性（以 iron law 为准，仅保留必要 items）
+++- [ ] V51-F03 Sounds：核心嗡鸣音效资源文件（ogg）与注册一致（当前缺少音频资源文件）
+++- [x] V51-F04 Menus/Screens：仅两个方块入口，菜单仍有效校验一致
++ 
++ ## 0. 数据结构与同步（规格书第0章）
++ - [x] V51-0001 PlayerData 字段覆盖（balance/taxDebt/.../isExile/exileDebt/签证/共生/边境等）
++ - [x] V51-0002 契约数据 SavedData（ContractData / WorldData）
++ - [x] V51-0003 世界级数据 SavedData（WorldData）
++-- [ ] V51-0004 离线处理：税收/共生衰减/签证倒计时/奴隶收益（待逐条核对）
+++- [ ] V51-0004 离线处理：税收/共生衰减/签证倒计时/奴隶收益（需按规格补齐“离线仍然记录”的结算逻辑）
++ 
++ ## 1. 交互范式（第一章）
++ - [x] V51-0101 核心 10 格强制接入 + 范围外提示 + 强制关闭
++diff --git a/doc/V51_TICK_SCHEDULE_IMPLEMENTATION.md b/doc/V51_TICK_SCHEDULE_IMPLEMENTATION.md
++new file mode 100644
++index 0000000..4e1f236
++--- /dev/null
+++++ b/doc/V51_TICK_SCHEDULE_IMPLEMENTATION.md
++@@ -0,0 +1,23 @@
+++# V51 Tick Schedule Implementation
+++
+++来源：`doc/V51_Specification.md` → “Tick Schedule（Tick 调度表）/ Event Mapping”
+++
+++## 调度入口
+++- `com.symbioticlaw.event.TickHandler#onServerTick`
+++
+++## 周期任务
+++- 每 tick（对每个在线玩家）：
+++  - OnlineTickCount 增量、周期税触发（24000 tick）
+++  - IdleTicks 增量、潜意识宣传触发
+++  - HUD 数据同步（罗盘 HUD）
+++- 每 20 tick（1 秒）：
+++  - `BorderSystem.tick(server)`：越界检测、倒计时、制裁
+++- 每 200 tick（10 秒）：
+++  - `ClassSystem.tick(server)`：阶级判定与状态维护
+++- 每 1200 tick（60 秒）：
+++  - `AffinitySystem.tick(server)`：共生扫描与亲密度增减、断链
+++  - `VisaSystem.tick(server)`：签证/假票过期状态归一
+++  - `ExileSystem.tick(server)`：遗民债务字段维护（与 balance 负数状态对齐）
+++- 每 24000 tick（20 分钟 / 1 MC 日）：
+++  - `ReportSystem.tick(server)`：行政日报广播与周期数据重置
+++
++diff --git a/src/main/java/com/symbioticlaw/data/PlayerData.java b/src/main/java/com/symbioticlaw/data/PlayerData.java
++deleted file mode 100644
++index ec0f0ca..0000000
++--- a/src/main/java/com/symbioticlaw/data/PlayerData.java
+++++ /dev/null
++@@ -1,528 +0,0 @@
++-package com.symbioticlaw.data;
++-
++-import net.minecraft.nbt.CompoundTag;
++-
++-import java.util.UUID;
++-import net.minecraft.core.BlockPos;
++-
++-public class PlayerData {
++-
++-    private UUID playerUUID;
++-
++-    // Economy
++-    private double balance = 500.0;
++-    private double taxDebt = 0.0;
++-    private long welfareCooldown = 0;
++-    private int onlineTickCount = 0;
++-
++-    // Identity
++-    private int classTier = 1; // 0: Pariah, 1: Restricted, 2: Free
++-    private boolean isFallen = false;
++-    private JobType jobType = JobType.UNEMPLOYED;
++-    private UUID slaveOwnerUUID;
++-
++-    // Affinity
++-    private UUID affinityPartnerUUID;
++-    private int affinityLevel = 0;
++-    private long affinityLastScan = 0;
++-    private long bondExpireTime = 0;
++-
++-    // Border
++-    private BlockPos homePosition = BlockPos.ZERO;
++-    private int movementRadius = 200;
++-    private long borderViolationTimer = 0;
++-
++-    // Visa
++-    private long visaExpireTime = 0;
++-    private long survivalPassExpireTime = 0;
++-    private long survivalPassCooldown = 0;
++-
++-    // Exile
++-    private boolean isExile = false;
++-    private double exileDebt = 0.0;
++-
++-    // Professions
++-    private int minerLevel = 0;
++-    private double minerXp = 0.0;
++-    private int farmerLevel = 0;
++-    private double farmerXp = 0.0;
++-    private long totalBiomassSold = 0;
++-    private int chefLevel = 0;
++-    private double chefXp = 0.0;
++-    private long totalDishesServed = 0;
++-    private int anglerLevel = 0;
++-    private double anglerXp = 0.0;
++-    private int adventurerLevel = 0;
++-    private double adventurerXp = 0.0;
++-    private int smithLevel = 0;
++-    private double smithXp = 0.0;
++-
++-    // Daily Quota
++-    private int dailyQuotaProgress = 0;
++-    private String dailyQuotaItem = "";
++-    private int dailyQuotaRequiredAmount = 0;
++-    private double dailyQuotaReward = 0.0;
++-
++-
++-    public PlayerData(UUID playerUUID) {
++-        this.playerUUID = playerUUID;
++-    }
++-
++-    public CompoundTag serializeNBT() {
++-        CompoundTag tag = new CompoundTag();
++-        if (playerUUID != null) {
++-            tag.putUUID("playerUUID", playerUUID);
++-        }
++-        tag.putDouble("balance", balance);
++-        tag.putDouble("taxDebt", taxDebt);
++-        tag.putLong("welfareCooldown", welfareCooldown);
++-        tag.putInt("onlineTickCount", onlineTickCount);
++-        tag.putInt("classTier", classTier);
++-        tag.putBoolean("isFallen", isFallen);
++-        tag.putString("jobType", jobType.getId());
++-        if (slaveOwnerUUID != null) {
++-            tag.putUUID("slaveOwnerUUID", slaveOwnerUUID);
++-        }
++-        if (affinityPartnerUUID != null) {
++-            tag.putUUID("affinityPartnerUUID", affinityPartnerUUID);
++-        }
++-        tag.putInt("affinityLevel", affinityLevel);
++-        tag.putLong("affinityLastScan", affinityLastScan);
++-        tag.putLong("bondExpireTime", bondExpireTime);
++-        if (homePosition != null) {
++-            tag.putLong("homePosition", homePosition.asLong());
++-        }
++-        tag.putInt("movementRadius", movementRadius);
++-        tag.putLong("borderViolationTimer", borderViolationTimer);
++-        tag.putLong("visaExpireTime", visaExpireTime);
++-        tag.putLong("survivalPassExpireTime", survivalPassExpireTime);
++-        tag.putLong("survivalPassCooldown", survivalPassCooldown);
++-        tag.putBoolean("isExile", isExile);
++-        tag.putDouble("exileDebt", exileDebt);
++-        tag.putInt("minerLevel", minerLevel);
++-        tag.putDouble("minerXp", minerXp);
++-        tag.putInt("farmerLevel", farmerLevel);
++-        tag.putDouble("farmerXp", farmerXp);
++-        tag.putLong("totalBiomassSold", totalBiomassSold);
++-        tag.putInt("chefLevel", chefLevel);
++-        tag.putDouble("chefXp", chefXp);
++-        tag.putLong("totalDishesServed", totalDishesServed);
++-        tag.putInt("anglerLevel", anglerLevel);
++-        tag.putDouble("anglerXp", anglerXp);
++-        tag.putInt("adventurerLevel", adventurerLevel);
++-        tag.putDouble("adventurerXp", adventurerXp);
++-        tag.putInt("smithLevel", smithLevel);
++-        tag.putDouble("smithXp", smithXp);
++-        tag.putInt("dailyQuotaProgress", dailyQuotaProgress);
++-        tag.putString("dailyQuotaItem", dailyQuotaItem);
++-        tag.putInt("dailyQuotaRequiredAmount", dailyQuotaRequiredAmount);
++-        tag.putDouble("dailyQuotaReward", dailyQuotaReward);
++-        return tag;
++-    }
++-
++-    public void deserializeNBT(CompoundTag tag) {
++-        if (tag.hasUUID("playerUUID")) {
++-            playerUUID = tag.getUUID("playerUUID");
++-        }
++-        balance = tag.getDouble("balance");
++-        taxDebt = tag.getDouble("taxDebt");
++-        welfareCooldown = tag.getLong("welfareCooldown");
++-        onlineTickCount = tag.getInt("onlineTickCount");
++-        classTier = tag.getInt("classTier");
++-        isFallen = tag.getBoolean("isFallen");
++-        jobType = JobType.fromId(tag.getString("jobType"));
++-        if (tag.hasUUID("slaveOwnerUUID")) {
++-            slaveOwnerUUID = tag.getUUID("slaveOwnerUUID");
++-        }
++-        if (tag.hasUUID("affinityPartnerUUID")) {
++-            affinityPartnerUUID = tag.getUUID("affinityPartnerUUID");
++-        }
++-        affinityLevel = tag.getInt("affinityLevel");
++-        affinityLastScan = tag.getLong("affinityLastScan");
++-        bondExpireTime = tag.getLong("bondExpireTime");
++-        if (tag.contains("homePosition")) {
++-            homePosition = BlockPos.of(tag.getLong("homePosition"));
++-        }
++-        movementRadius = tag.getInt("movementRadius");
++-        borderViolationTimer = tag.getLong("borderViolationTimer");
++-        visaExpireTime = tag.getLong("visaExpireTime");
++-        survivalPassExpireTime = tag.getLong("survivalPassExpireTime");
++-        survivalPassCooldown = tag.getLong("survivalPassCooldown");
++-        isExile = tag.getBoolean("isExile");
++-        exileDebt = tag.getDouble("exileDebt");
++-        minerLevel = tag.getInt("minerLevel");
++-        minerXp = tag.getDouble("minerXp");
++-        farmerLevel = tag.getInt("farmerLevel");
++-        farmerXp = tag.getDouble("farmerXp");
++-        totalBiomassSold = tag.getLong("totalBiomassSold");
++-        chefLevel = tag.getInt("chefLevel");
++-        chefXp = tag.getDouble("chefXp");
++-        totalDishesServed = tag.getLong("totalDishesServed");
++-        anglerLevel = tag.getInt("anglerLevel");
++-        anglerXp = tag.getDouble("anglerXp");
++-        adventurerLevel = tag.getInt("adventurerLevel");
++-        adventurerXp = tag.getDouble("adventurerXp");
++-        smithLevel = tag.getInt("smithLevel");
++-        smithXp = tag.getDouble("smithXp");
++-        dailyQuotaProgress = tag.getInt("dailyQuotaProgress");
++-        dailyQuotaItem = tag.getString("dailyQuotaItem");
++-        dailyQuotaRequiredAmount = tag.getInt("dailyQuotaRequiredAmount");
++-        dailyQuotaReward = tag.getDouble("dailyQuotaReward");
++-    }
++-
++-    // Getters and Setters
++-
++-    public UUID getPlayerUUID() {
++-        return playerUUID;
++-    }
++-
++-
++-    public void setPlayerUUID(UUID playerUUID) {
++-        this.playerUUID = playerUUID;
++-    }
++-
++-    public double getBalance() {
++-        return balance;
++-    }
++-
++-    public void setBalance(double balance) {
++-        this.balance = balance;
++-    }
++-
++-    public double getTaxDebt() {
++-        return taxDebt;
++-    }
++-
++-    public void setTaxDebt(double taxDebt) {
++-        this.taxDebt = taxDebt;
++-    }
++-
++-    public long getWelfareCooldown() {
++-        return welfareCooldown;
++-    }
++-
++-    public void setWelfareCooldown(long welfareCooldown) {
++-        this.welfareCooldown = welfareCooldown;
++-    }
++-
++-    public int getOnlineTickCount() {
++-        return onlineTickCount;
++-    }
++-
++-    public void setOnlineTickCount(int onlineTickCount) {
++-        this.onlineTickCount = onlineTickCount;
++-    }
++-
++-    public int getClassTier() {
++-        return classTier;
++-    }
++-
++-    public void setClassTier(int classTier) {
++-        this.classTier = classTier;
++-    }
++-
++-    public boolean isFallen() {
++-        return isFallen;
++-    }
++-
++-    public void setFallen(boolean fallen) {
++-        isFallen = fallen;
++-    }
++-
++-    public JobType getJobType() {
++-        return jobType;
++-    }
++-
++-    public void setJobType(JobType jobType) {
++-        this.jobType = jobType;
++-    }
++-
++-    public UUID getSlaveOwnerUUID() {
++-        return slaveOwnerUUID;
++-    }
++-
++-    public void setSlaveOwnerUUID(UUID slaveOwnerUUID) {
++-        this.slaveOwnerUUID = slaveOwnerUUID;
++-    }
++-
++-    public UUID getAffinityPartnerUUID() {
++-        return affinityPartnerUUID;
++-    }
++-
++-    public void setAffinityPartnerUUID(UUID affinityPartnerUUID) {
++-        this.affinityPartnerUUID = affinityPartnerUUID;
++-    }
++-
++-    public int getAffinityLevel() {
++-        return affinityLevel;
++-    }
++-
++-    public void setAffinityLevel(int affinityLevel) {
++-        this.affinityLevel = affinityLevel;
++-    }
++-
++-    public long getAffinityLastScan() {
++-        return affinityLastScan;
++-    }
++-
++-    public void setAffinityLastScan(long affinityLastScan) {
++-        this.affinityLastScan = affinityLastScan;
++-    }
++-
++-    public long getBondExpireTime() {
++-        return bondExpireTime;
++-    }
++-
++-    public void setBondExpireTime(long bondExpireTime) {
++-        this.bondExpireTime = bondExpireTime;
++-    }
++-
++-    public BlockPos getHomePosition() {
++-        return homePosition;
++-    }
++-
++-    public void setHomePosition(BlockPos homePosition) {
++-        this.homePosition = homePosition;
++-    }
++-
++-    public int getMovementRadius() {
++-        return movementRadius;
++-    }
++-
++-    public void setMovementRadius(int movementRadius) {
++-        this.movementRadius = movementRadius;
++-    }
++-
++-    public long getBorderViolationTimer() {
++-        return borderViolationTimer;
++-    }
++-
++-    public void setBorderViolationTimer(long borderViolationTimer) {
++-        this.borderViolationTimer = borderViolationTimer;
++-    }
++-
++-    public long getVisaExpireTime() {
++-        return visaExpireTime;
++-    }
++-
++-    public void setVisaExpireTime(long visaExpireTime) {
++-        this.visaExpireTime = visaExpireTime;
++-    }
++-
++-    public long getSurvivalPassExpireTime() {
++-        return survivalPassExpireTime;
++-    }
++-
++-    public void setSurvivalPassExpireTime(long survivalPassExpireTime) {
++-        this.survivalPassExpireTime = survivalPassExpireTime;
++-    }
++-
++-    public long getSurvivalPassCooldown() {
++-        return survivalPassCooldown;
++-    }
++-
++-    public void setSurvivalPassCooldown(long survivalPassCooldown) {
++-        this.survivalPassCooldown = survivalPassCooldown;
++-    }
++-
++-    public boolean isExile() {
++-        return isExile;
++-    }
++-    public void setExile(boolean exile) {
++-        isExile = exile;
++-    }
++-
++-    public double getExileDebt() {
++-        return exileDebt;
++-    }
++-
++-    public void setExileDebt(double exileDebt) {
++-        this.exileDebt = exileDebt;
++-    }
++-
++-    public int getMinerLevel() {
++-        return minerLevel;
++-    }
++-
++-    public void setMinerLevel(int minerLevel) {
++-        this.minerLevel = minerLevel;
++-    }
++-
++-    public double getMinerXp() {
++-        return minerXp;
++-    }
++-
++-    public void setMinerXp(double minerXp) {
++-        this.minerXp = minerXp;
++-    }
++-
++-    public int getFarmerLevel() {
++-        return farmerLevel;
++-    }
++-
++-    public void setFarmerLevel(int farmerLevel) {
++-        this.farmerLevel = farmerLevel;
++-    }
++-
++-    public double getFarmerXp() {
++-        return farmerXp;
++-    }
++-
++-    public void setFarmerXp(double farmerXp) {
++-        this.farmerXp = farmerXp;
++-    }
++-
++-    public long getTotalBiomassSold() {
++-        return totalBiomassSold;
++-    }
++-
++-    public void setTotalBiomassSold(long totalBiomassSold) {
++-        this.totalBiomassSold = totalBiomassSold;
++-    }
++-
++-    public int getChefLevel() {
++-        return chefLevel;
++-    }
++-
++-    public void setChefLevel(int chefLevel) {
++-        this.chefLevel = chefLevel;
++-    }
++-
++-    public double getChefXp() {
++-        return chefXp;
++-    }
++-
++-    public void setChefXp(double chefXp) {
++-        this.chefXp = chefXp;
++-    }
++-
++-    public long getTotalDishesServed() {
++-        return totalDishesServed;
++-    }
++-
++-    public void setTotalDishesServed(long totalDishesServed) {
++-        this.totalDishesServed = totalDishesServed;
++-    }
++-
++-    public int getAnglerLevel() {
++-        return anglerLevel;
++-    }
++-
++-    public void setAnglerLevel(int anglerLevel) {
++-        this.anglerLevel = anglerLevel;
++-    }
++-
++-    public double getAnglerXp() {
++-        return anglerXp;
++-    }
++-
++-    public void setAnglerXp(double anglerXp) {
++-        this.anglerXp = anglerXp;
++-    }
++-
++-    public int getAdventurerLevel() {
++-        return adventurerLevel;
++-    }
++-
++-    public void setAdventurerLevel(int adventurerLevel) {
++-        this.adventurerLevel = adventurerLevel;
++-    }
++-
++-    public double getAdventurerXp() {
++-        return adventurerXp;
++-    }
++-
++-    public void setAdventurerXp(double adventurerXp) {
++-        this.adventurerXp = adventurerXp;
++-    }
++-
++-    public int getSmithLevel() {
++-        return smithLevel;
++-    }
++-
++-    public void setSmithLevel(int smithLevel) {
++-        this.smithLevel = smithLevel;
++-    }
++-
++-    public double getSmithXp() {
++-        return smithXp;
++-    }
++-
++-    public void setSmithXp(double smithXp) {
++-        this.smithXp = smithXp;
++-    }
++-
++-    public int getDailyQuotaProgress() {
++-        return dailyQuotaProgress;
++-    }
++-
++-    public void setDailyQuotaProgress(int dailyQuotaProgress) {
++-        this.dailyQuotaProgress = dailyQuotaProgress;
++-    }
++-
++-    public String getDailyQuotaItem() {
++-        return dailyQuotaItem;
++-    }
++-
++-    public void setDailyQuotaItem(String dailyQuotaItem) {
++-        this.dailyQuotaItem = dailyQuotaItem;
++-    }
++-
++-    public int getDailyQuotaRequiredAmount() {
++-        return dailyQuotaRequiredAmount;
++-    }
++-
++-    public void setDailyQuotaRequiredAmount(int dailyQuotaRequiredAmount) {
++-        this.dailyQuotaRequiredAmount = dailyQuotaRequiredAmount;
++-    }
++-
++-    public double getDailyQuotaReward() {
++-        return dailyQuotaReward;
++-    }
++-
++-    public void setDailyQuotaReward(double dailyQuotaReward) {
++-        this.dailyQuotaReward = dailyQuotaReward;
++-    }
++-
++-    public void copyFrom(PlayerData source) {
++-        this.playerUUID = source.playerUUID;
++-        this.balance = source.balance;
++-        this.taxDebt = source.taxDebt;
++-        this.welfareCooldown = source.welfareCooldown;
++-        this.onlineTickCount = source.onlineTickCount;
++-        this.classTier = source.classTier;
++-        this.isFallen = source.isFallen;
++-        this.jobType = source.jobType;
++-        this.slaveOwnerUUID = source.slaveOwnerUUID;
++-        this.affinityPartnerUUID = source.affinityPartnerUUID;
++-        this.affinityLevel = source.affinityLevel;
++-        this.affinityLastScan = source.affinityLastScan;
++-        this.bondExpireTime = source.bondExpireTime;
++-        this.homePosition = source.homePosition;
++-        this.movementRadius = source.movementRadius;
++-        this.borderViolationTimer = source.borderViolationTimer;
++-        this.visaExpireTime = source.visaExpireTime;
++-        this.survivalPassExpireTime = source.survivalPassExpireTime;
++-        this.survivalPassCooldown = source.survivalPassCooldown;
++-        this.isExile = source.isExile;
++-        this.exileDebt = source.exileDebt;
++-        this.minerLevel = source.minerLevel;
++-        this.minerXp = source.minerXp;
++-        this.farmerLevel = source.farmerLevel;
++-        this.farmerXp = source.farmerXp;
++-        this.totalBiomassSold = source.totalBiomassSold;
++-        this.chefLevel = source.chefLevel;
++-        this.chefXp = source.chefXp;
++-        this.totalDishesServed = source.totalDishesServed;
++-        this.anglerLevel = source.anglerLevel;
++-        this.anglerXp = source.anglerXp;
++-        this.adventurerLevel = source.adventurerLevel;
++-        this.adventurerXp = source.adventurerXp;
++-        this.smithLevel = source.smithLevel;
++-        this.smithXp = source.smithXp;
++-        this.dailyQuotaProgress = source.dailyQuotaProgress;
++-        this.dailyQuotaItem = source.dailyQuotaItem;
++-        this.dailyQuotaRequiredAmount = source.dailyQuotaRequiredAmount;
++-        this.dailyQuotaReward = source.dailyQuotaReward;
++-    }
++-}
++\ No newline at end of file
++diff --git a/src/main/java/com/symbioticlaw/event/TickHandler.java b/src/main/java/com/symbioticlaw/event/TickHandler.java
++index 0955bd4..fafbab6 100644
++--- a/src/main/java/com/symbioticlaw/event/TickHandler.java
+++++ b/src/main/java/com/symbioticlaw/event/TickHandler.java
++@@ -7,6 +7,8 @@ import com.symbioticlaw.system.ClassSystem;
++ import com.symbioticlaw.capability.PlayerDataCapability;
++ import com.symbioticlaw.system.ReportSystem;
++ import com.symbioticlaw.system.TaxSystem;
+++import com.symbioticlaw.system.ExileSystem;
+++import com.symbioticlaw.system.VisaSystem;
++ import net.minecraft.server.MinecraftServer;
++ import net.minecraftforge.event.TickEvent;
++ import net.minecraftforge.eventbus.api.SubscribeEvent;
++@@ -23,6 +25,8 @@ public class TickHandler {
++     private static final com.symbioticlaw.system.SubliminalSystem subliminalSystem = new com.symbioticlaw.system.SubliminalSystem();
++     private static final com.symbioticlaw.system.HudDataSystem hudDataSystem = new com.symbioticlaw.system.HudDataSystem();
++     private static final com.symbioticlaw.system.DailyQuotaSystem dailyQuotaSystem = new com.symbioticlaw.system.DailyQuotaSystem();
+++    private static final VisaSystem visaSystem = new VisaSystem();
+++    private static final ExileSystem exileSystem = new ExileSystem();
++ 
++     @SubscribeEvent
++     public static void onServerTick(TickEvent.ServerTickEvent event) {
++@@ -56,6 +60,8 @@ public class TickHandler {
++ 
++             if (gameTime % 1200 == 0) { // Every 60 seconds
++                 affinitySystem.tick(server);
+++                visaSystem.tick(server);
+++                exileSystem.tick(server);
++             }
++ 
++             if (gameTime % 24000 == 0) { // Every 20 minutes (1 Minecraft day)
++diff --git a/src/main/java/com/symbioticlaw/system/ExileSystem.java b/src/main/java/com/symbioticlaw/system/ExileSystem.java
++new file mode 100644
++index 0000000..92bb018
++--- /dev/null
+++++ b/src/main/java/com/symbioticlaw/system/ExileSystem.java
++@@ -0,0 +1,27 @@
+++package com.symbioticlaw.system;
+++
+++import com.symbioticlaw.capability.PlayerDataCapability;
+++import net.minecraft.server.MinecraftServer;
+++import net.minecraft.server.level.ServerPlayer;
+++
+++public class ExileSystem {
+++    public void tick(MinecraftServer server) {
+++        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+++            player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> {
+++                double debt = playerData.getExileDebt();
+++                double balance = playerData.getBalance();
+++
+++                if (balance < 0) {
+++                    playerData.setExile(true);
+++                    playerData.setExileDebt(Math.max(debt, -balance));
+++                } else {
+++                    playerData.setExile(false);
+++                    if (debt > 0) {
+++                        playerData.setExileDebt(0);
+++                    }
+++                }
+++            });
+++        }
+++    }
+++}
+++
++diff --git a/src/main/java/com/symbioticlaw/system/ProfessionSystem.java b/src/main/java/com/symbioticlaw/system/ProfessionSystem.java
++index 503c36c..8708c81 100644
++--- a/src/main/java/com/symbioticlaw/system/ProfessionSystem.java
+++++ b/src/main/java/com/symbioticlaw/system/ProfessionSystem.java
++@@ -8,7 +8,6 @@ import com.symbioticlaw.professions.FarmerProfessionManager;
++ import com.symbioticlaw.capability.PlayerDataCapability;
++ import com.symbioticlaw.core.ModTags;
++ import com.symbioticlaw.data.JobType;
++-import com.symbioticlaw.data.PlayerData;
++ import net.minecraft.network.chat.Component;
++ import net.minecraft.server.level.ServerLevel;
++ import net.minecraft.server.level.ServerPlayer;
++diff --git a/src/main/java/com/symbioticlaw/system/VisaSystem.java b/src/main/java/com/symbioticlaw/system/VisaSystem.java
++new file mode 100644
++index 0000000..595c7e9
++--- /dev/null
+++++ b/src/main/java/com/symbioticlaw/system/VisaSystem.java
++@@ -0,0 +1,28 @@
+++package com.symbioticlaw.system;
+++
+++import com.symbioticlaw.capability.IPlayerData;
+++import com.symbioticlaw.capability.PlayerDataCapability;
+++import net.minecraft.server.MinecraftServer;
+++import net.minecraft.server.level.ServerPlayer;
+++
+++public class VisaSystem {
+++    public void tick(MinecraftServer server) {
+++        if (server.overworld() == null) return;
+++        long now = server.overworld().getGameTime();
+++
+++        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+++            player.getCapability(PlayerDataCapability.INSTANCE).ifPresent(playerData -> normalize(playerData, now));
+++        }
+++    }
+++
+++    private void normalize(IPlayerData playerData, long now) {
+++        if (playerData.getVisaExpireTime() > 0 && playerData.getVisaExpireTime() <= now) {
+++            playerData.setVisaExpireTime(0);
+++        }
+++
+++        if (playerData.getSurvivalPassExpireTime() > 0 && playerData.getSurvivalPassExpireTime() <= now) {
+++            playerData.setSurvivalPassExpireTime(0);
+++        }
+++    }
+++}
+++
++-- 
++2.43.0
++
+diff --git a/patch_bce9815_offline_income.patch b/patch_bce9815_offline_income.patch
+new file mode 100644
+index 0000000..e53eb9a
+--- /dev/null
++++ b/patch_bce9815_offline_income.patch
+@@ -0,0 +1,77 @@
++From bce9815e5364ef90e639e90b9e4bc8f336c8c15f Mon Sep 17 00:00:00 2001
++From: Bosehen <soptud@gmail.com>
++Date: Sun, 3 May 2026 05:17:35 +0000
++Subject: [PATCH] feat: implement offline slave income accrual
++
++---
++ doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md       |  2 +-
++ doc/V51_OFFLINE_PROCESSING_IMPLEMENTATION.md   | 18 ++++++++++++++++++
++ .../com/symbioticlaw/system/IncomeManager.java |  7 ++++++-
++ 3 files changed, 25 insertions(+), 2 deletions(-)
++ create mode 100644 doc/V51_OFFLINE_PROCESSING_IMPLEMENTATION.md
++
++diff --git a/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md b/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md
++index 9675d99..a7d320d 100644
++--- a/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md
+++++ b/doc/V51_IMPLEMENTATION_CHECKLIST_FULL.md
++@@ -34,7 +34,7 @@
++ - [x] V51-0001 PlayerData 字段覆盖（balance/taxDebt/.../isExile/exileDebt/签证/共生/边境等）
++ - [x] V51-0002 契约数据 SavedData（ContractData / WorldData）
++ - [x] V51-0003 世界级数据 SavedData（WorldData）
++-- [ ] V51-0004 离线处理：税收/共生衰减/签证倒计时/奴隶收益（需按规格补齐“离线仍然记录”的结算逻辑）
+++- [x] V51-0004 离线处理：税收/共生衰减/签证倒计时/奴隶收益（见 doc/V51_OFFLINE_PROCESSING_IMPLEMENTATION.md）
++ 
++ ## 1. 交互范式（第一章）
++ - [x] V51-0101 核心 10 格强制接入 + 范围外提示 + 强制关闭
++diff --git a/doc/V51_OFFLINE_PROCESSING_IMPLEMENTATION.md b/doc/V51_OFFLINE_PROCESSING_IMPLEMENTATION.md
++new file mode 100644
++index 0000000..c418e77
++--- /dev/null
+++++ b/doc/V51_OFFLINE_PROCESSING_IMPLEMENTATION.md
++@@ -0,0 +1,18 @@
+++# V51 Offline Processing Implementation
+++
+++来源：`doc/V51_Specification.md` → “0.6 离线处理”
+++
+++## 奴隶收益
+++- 在线：`com.symbioticlaw.system.IncomeManager#processIncome` 将 40% 直接结算给在线债主
+++- 离线：债主不在线时，40% 写入 `WorldData.unclaimedIncome`（`UnclaimedIncomeData`）
+++- 提示：债主登录时由 `com.symbioticlaw.event.IdentityEvents#onPlayerLogin` 提示并引导前往核心领取
+++
+++## 共生衰减
+++- `com.symbioticlaw.system.AffinitySystem#tick` 每 60 秒扫描一次；任一方离线时视为不在范围内 → affinity -1
+++
+++## 签证/假票时间
+++- 以 `gameTime` 作为绝对时间基准存储 expireTime；即使玩家离线，世界 `gameTime` 仍推进，因此到期判定在玩家下次上线或边境检测时自然生效
+++
+++## 周期税
+++- 周期税按 OnlineTickCount 计时：离线不计入在线时长；上线后继续累计至 24000 tick 触发扣税
+++
++diff --git a/src/main/java/com/symbioticlaw/system/IncomeManager.java b/src/main/java/com/symbioticlaw/system/IncomeManager.java
++index a4c2194..13ed8e9 100644
++--- a/src/main/java/com/symbioticlaw/system/IncomeManager.java
+++++ b/src/main/java/com/symbioticlaw/system/IncomeManager.java
++@@ -2,6 +2,7 @@ package com.symbioticlaw.system;
++ 
++ import com.symbioticlaw.capability.IPlayerData;
++ import com.symbioticlaw.capability.PlayerDataCapability;
+++import com.symbioticlaw.data.WorldData;
++ import net.minecraft.network.chat.Component;
++ import net.minecraft.server.level.ServerPlayer;
++ 
++@@ -35,7 +36,11 @@ public class IncomeManager {
++                         owner.sendSystemMessage(Component.literal(String.format("§b[税金] 您的奴隶 %s 为您贡献了 $%.2f. §7来源: %s.", player.getGameProfile().getName(), ownerShare, source)));
++                     });
++                 } else {
++-                    // Owner is offline, handle offline income (to be implemented)
+++                    WorldData worldData = WorldData.get(player.serverLevel());
+++                    if (worldData != null) {
+++                        worldData.getUnclaimedIncomeData().addIncome(ownerUUID, ownerShare);
+++                        worldData.setDirty();
+++                    }
++                 }
++             }
++         });
++-- 
++2.43.0
++
+-- 
+2.43.0
+

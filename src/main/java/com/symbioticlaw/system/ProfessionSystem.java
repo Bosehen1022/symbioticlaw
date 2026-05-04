@@ -8,7 +8,6 @@ import com.symbioticlaw.professions.FarmerProfessionManager;
 import com.symbioticlaw.capability.PlayerDataCapability;
 import com.symbioticlaw.core.ModTags;
 import com.symbioticlaw.data.JobType;
-import com.symbioticlaw.data.PlayerData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
